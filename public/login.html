@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - Andante</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="lib/theme-mapping.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        .login-box {
+            width: 100%;
+            max-width: 440px;
+        }
+    </style>
+</head>
+<body class="theme-transition bg-card">
+    
+    <!-- Blur Blob Background -->
+    <div id="blob-bg" class="blob-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Header Brand Logo -->
+    <div class="flex items-center justify-between w-full max-w-md px-4 relative-z" style="margin-bottom: 2.5rem; margin-top: 1rem;">
+        <div class="flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
+            <div>
+                <h1 class="text-2xl font-black text-black margin-0 leading-tight">Andante</h1>
+                <p class="text-xs font-bold text-slate-700 margin-0">AI 감성 힐링 캔버스</p>
+            </div>
+        </div>
+        <!-- Weather Badge -->
+        <div id="weather-badge" class="text-3xl font-bold flex items-center justify-center float-in" style="animation-delay: 0.3s;" title="날씨 불러오는 중...">
+            <!-- Emoji will be injected here -->
+        </div>
+    </div>
+
+    <!-- Login / Register Brutal Card -->
+    <div class="brutal-card bg-card login-box text-center space-y-6 float-in relative-z">
+        <div class="border-b-2 border-black pb-3">
+            <h2 id="auth-title" class="text-xl font-black text-black margin-0">로그인</h2>
+            <p id="auth-desc" class="text-xs font-bold text-slate-600 margin-0 mt-1">마음을 다듬는 Andante 공간에 어서오세요.</p>
+        </div>
+        
+        <div class="space-y-4 text-left">
+            <div class="input-group">
+                <label for="username" class="block text-xs font-bold text-black mb-1">아이디</label>
+                <input type="text" id="username" placeholder="아이디를 입력하세요" class="brutal-input">
+            </div>
+            
+            <div class="input-group">
+                <label for="password" class="block text-xs font-bold text-black mb-1">비밀번호</label>
+                <input type="password" id="password" placeholder="비밀번호를 입력하세요" class="brutal-input">
+            </div>
+            
+            <!-- 회원가입 전용 폼 -->
+            <div id="register-fields" class="hidden space-y-4 pt-2 border-t-2 border-dashed border-black/20">
+                <div class="input-group">
+                    <label for="name" class="block text-xs font-bold text-black mb-1">이름</label>
+                    <input type="text" id="name" placeholder="이름을 입력하세요" class="brutal-input">
+                </div>
+                
+                <div class="grid grid-2 gap-3">
+                    <div class="input-group">
+                        <label for="birthDate" class="block text-xs font-bold text-black mb-1">🎂 생년월일 (바이오리듬용)</label>
+                        <input type="date" id="birthDate" value="2000-01-01" class="brutal-input">
+                    </div>
+                    <div class="input-group">
+                        <label for="mbti" class="block text-xs font-bold text-black mb-1">🏷️ MBTI 선택</label>
+                        <select id="mbti" class="brutal-input" style="cursor:pointer; font-weight:bold;">
+                            <option value="INFP" selected>INFP</option>
+                            <option value="INFJ">INFJ</option>
+                            <option value="ENFP">ENFP</option>
+                            <option value="ENFJ">ENFJ</option>
+                            <option value="INTJ">INTJ</option>
+                            <option value="INTP">INTP</option>
+                            <option value="ENTJ">ENTJ</option>
+                            <option value="ENTP">ENTP</option>
+                            <option value="ISFP">ISFP</option>
+                            <option value="ISFJ">ISFJ</option>
+                            <option value="ESFP">ESFP</option>
+                            <option value="ESFJ">ESFJ</option>
+                            <option value="ISTP">ISTP</option>
+                            <option value="ISTJ">ISTJ</option>
+                            <option value="ESTP">ESTP</option>
+                            <option value="ESTJ">ESTJ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="age" class="block text-xs font-bold text-black mb-1">나이</label>
+                    <input type="number" id="age" placeholder="나이를 입력하세요 (예: 25)" min="1" max="120" class="brutal-input">
+                </div>
+                
+                <div class="input-group">
+                    <label class="block text-xs font-bold text-black mb-1">성별</label>
+                    <div class="flex gap-4 items-center pt-1">
+                        <label class="flex items-center gap-1 text-xs font-bold text-black cursor-pointer">
+                            <input type="radio" name="gender" value="남성" checked> 남성
+                        </label>
+                        <label class="flex items-center gap-1 text-xs font-bold text-black cursor-pointer">
+                            <input type="radio" name="gender" value="여성"> 여성
+                        </label>
+                        <label class="flex items-center gap-1 text-xs font-bold text-black cursor-pointer">
+                            <input type="radio" name="gender" value="기타"> 기타
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="login-submit-btn" class="w-full py-3 brutal-btn bg-pink text-black font-black active-press text-base mt-2">
+            로그인하기
+        </button>
+        <button id="register-submit-btn" class="w-full py-3 brutal-btn bg-yellow text-black font-black active-press text-base mt-2 hidden">
+            회원가입 완료
+        </button>
+        
+        <div class="flex justify-center gap-4 w-full" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px dashed rgba(0,0,0,0.1);">
+            <button id="auth-toggle-btn" class="brutal-btn bg-white text-black font-bold active-press text-sm border-dashed" style="padding: 0.5rem 1.5rem;">
+                회원가입
+            </button>
+            <button onclick="location.href='/'" class="brutal-btn bg-slate-200 text-black font-bold active-press text-sm" style="padding: 0.5rem 1.5rem;">
+                🏠 메인
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden"></div>
+
+    <script>
+        const loginBtn = document.getElementById('login-submit-btn');
+        const regBtn = document.getElementById('register-submit-btn');
+        const toggleBtn = document.getElementById('auth-toggle-btn');
+        const regFields = document.getElementById('register-fields');
+        let isReg = false;
+
+        // Weather Theme Update Logic
+        const weatherBadge = document.getElementById('weather-badge');
+        
+        async function fetchWeatherByLocation(lat, lon) {
+            try {
+                const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+                const data = await res.json();
+                if (data.weather && data.weather.length > 0) {
+                    const weatherMain = data.weather[0].main;
+                    const temp = Math.round(data.main.temp);
+                    updateThemeByTimeAndWeather(weatherMain, temp);
+                }
+            } catch (err) {
+                console.error('날씨 정보를 불러올 수 없습니다.', err);
+                weatherBadge.innerHTML = '🌡️';
+            }
+        }
+
+        function updateThemeByTimeAndWeather(weatherMain, temp) {
+            const currentHour = new Date().getHours();
+            const theme = typeof resolveThemeByEnv === 'function' ? resolveThemeByEnv(currentHour, weatherMain) : null;
+            
+            let emoji = '☁️';
+            if (weatherMain.includes('Rain') || weatherMain.includes('Drizzle')) emoji = '🌧️';
+            else if (weatherMain.includes('Thunderstorm')) emoji = '⛈️';
+            else if (weatherMain.includes('Snow')) emoji = '❄️';
+            else if (weatherMain.includes('Clear')) emoji = '☀️';
+            else if (weatherMain.includes('Mist') || weatherMain.includes('Fog')) emoji = '🌫️';
+
+            weatherBadge.innerHTML = `${emoji} <span class="text-lg ml-1">${temp}°C</span>`;
+            
+            if (theme) {
+                document.body.className = document.body.className.replace(/\bbg-\w+\b/g, '');
+                document.body.style.backgroundColor = theme.background;
+            }
+        }
+
+        // Request Location on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        fetchWeatherByLocation(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn('위치 권한 거부 또는 오류, 서울 날씨로 대체합니다.');
+                        // Fallback to Seoul
+                        fetch(`/api/weather?q=Seoul`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if(data.weather) updateThemeByTimeAndWeather(data.weather[0].main, Math.round(data.main.temp));
+                            }).catch(() => weatherBadge.innerHTML = '🌡️');
+                    }
+                );
+            } else {
+                weatherBadge.innerHTML = '🌡️';
+            }
+        });
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isReg = !isReg;
+            if (isReg) {
+                document.getElementById('auth-title').textContent = "회원가입";
+                document.getElementById('auth-desc').textContent = "Andante 회원 가입을 위한 기본 정보를 입력해 주세요.";
+                loginBtn.classList.add('hidden');
+                regBtn.classList.remove('hidden');
+                regFields.classList.remove('hidden');
+                toggleBtn.textContent = "로그인";
+            } else {
+                document.getElementById('auth-title').textContent = "로그인";
+                document.getElementById('auth-desc').textContent = "마음을 다듬는 Andante 공간에 어서오세요.";
+                loginBtn.classList.remove('hidden');
+                regBtn.classList.add('hidden');
+                regFields.classList.add('hidden');
+                toggleBtn.textContent = "회원가입";
+            }
+        });
+
+        const showToast = (msg) => {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        };
+
+        loginBtn.addEventListener('click', async () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (!username || !password) return showToast('아이디와 비밀번호를 입력해주세요.');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '69420' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('authUsername', data.username);
+                localStorage.setItem('authName', data.name);
+                localStorage.setItem('authGender', data.gender);
+                localStorage.setItem('authAge', data.age);
+                if (data.birthDate) localStorage.setItem('authBirthDate', data.birthDate);
+                if (data.mbti) localStorage.setItem('authMbti', data.mbti);
+                window.location.href = '/';
+            } catch (e) { showToast(e.message); }
+        });
+
+        regBtn.addEventListener('click', async () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const age = document.getElementById('age').value.trim();
+            const birthDate = document.getElementById('birthDate').value;
+            const mbti = document.getElementById('mbti').value;
+            const genderEl = document.querySelector('input[name="gender"]:checked');
+            const gender = genderEl ? genderEl.value : '남성';
+
+            if (!username || !password || !name || !age || !birthDate || !mbti) return showToast('모든 항목을 입력해주세요.');
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '69420' },
+                    body: JSON.stringify({ username, password, name, gender, age, birthDate, mbti })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                showToast('회원가입 성공! 로그인해 주세요.');
+                toggleBtn.click();
+            } catch (e) { showToast(e.message); }
+        });
+    </script>
+</body>
+</html>

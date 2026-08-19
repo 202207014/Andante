@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 상세 - 안단테 (Andante)</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="modal.js"></script>
+</head>
+<body class="bg-gray-50 text-slate-800">
+    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
+        <div class="header-brand flex items-center gap-3">
+            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0" style="cursor: pointer;" onclick="location.href='/'">
+                Andante
+            </h1>
+        </div>
+        <div class="header-nav flex items-center gap-2">
+            <button onclick="location.href='/board.html'" class="icon-btn brutal-btn bg-sky text-black font-bold">목록으로</button>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="icon-btn brutal-btn bg-mint text-black font-bold">마이 페이지</button>
+        </div>
+    </header>
+
+    <div class="max-w-4xl mx-auto p-4 mb-20 space-y-8">
+        <!-- Post Content Card -->
+        <div class="brutal-card bg-white p-8 md:p-12">
+            <div id="action-btns" class="hidden flex justify-end gap-3 mb-6">
+                <button id="edit-btn" class="brutal-btn bg-sky text-black px-4 py-2 font-bold text-sm">수정</button>
+                <button id="delete-btn" class="brutal-btn bg-red-400 text-black px-4 py-2 font-bold text-sm">삭제</button>
+            </div>
+            
+            <h1 id="post-title" class="text-3xl md:text-4xl font-black mb-4 break-keep">로딩 중...</h1>
+            <div class="flex items-center gap-4 text-sm font-bold mb-8 pb-4 border-b-2 border-black">
+                <span id="post-author" class="bg-yellow px-3 py-1 rounded-full border-2 border-black"></span>
+                <span id="post-date" class="text-gray-600"></span>
+            </div>
+            
+            <div class="w-full border-2 border-black rounded-2xl overflow-hidden shadow-brutal-sm mb-8 bg-gray-100 flex justify-center items-center">
+                <img id="post-image" src="" alt="Artwork" style="display: none; max-width: 100%; height: auto; max-height: 600px;">
+            </div>
+            
+            <div id="post-tags" class="flex flex-wrap gap-3 font-bold text-sm mb-8">
+                <!-- Tags inserted here -->
+            </div>
+            
+            <div id="post-content" class="text-lg leading-relaxed whitespace-pre-wrap font-medium"></div>
+            
+            <div class="mt-12 flex justify-center">
+                <button id="like-btn" class="brutal-btn bg-white border-2 border-black px-6 py-3 rounded-full flex items-center gap-3 text-lg font-black transition-colors hover:bg-red-50">
+                    <span id="like-icon" class="text-red-500">🤍</span>
+                    <span id="like-count">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Comments Card -->
+        <div class="brutal-card bg-white p-8">
+            <h3 class="text-2xl font-black mb-6">댓글</h3>
+            
+            <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                <input type="text" id="comment-input" placeholder="댓글을 남겨보세요" class="brutal-input flex-1 border-2 border-black p-4 font-bold rounded-xl focus:outline-none focus:ring-4 focus:ring-sky-300">
+                <button id="comment-submit-btn" class="brutal-btn bg-black text-white px-8 py-4 font-bold rounded-xl whitespace-nowrap">등록</button>
+            </div>
+            
+            <div id="comments-list" class="space-y-4">
+                <!-- Comments inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="hidden"></div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        const currentUser = localStorage.getItem('authUsername');
+        if (!token) window.location.href = '/login.html';
+
+        const params = new URLSearchParams(window.location.search);
+        const boardId = params.get('id');
+        if (!boardId) window.location.href = '/board.html';
+
+        const showToast = (msg) => {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-bold shadow-brutal-sm z-50';
+            setTimeout(() => toast.className = 'hidden', 3000);
+        };
+
+        const loadPost = async () => {
+            try {
+                const res = await fetch(`/api/boards/${boardId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('게시물을 불러오지 못했습니다.');
+                const post = await res.json();
+                
+                document.getElementById('post-title').textContent = post.TITLE;
+                document.getElementById('post-author').textContent = post.USERNAME;
+                document.getElementById('post-date').textContent = new Date(post.CREATED_AT).toLocaleString();
+                
+                const img = document.getElementById('post-image');
+                img.src = post.IMAGE_BASE64;
+                img.style.display = 'block';
+
+                document.getElementById('post-tags').innerHTML = `
+                    <span class="bg-sky px-3 py-1 rounded-full border-2 border-black">☀️ ${post.WEATHER}</span>
+                    <span class="bg-pink px-3 py-1 rounded-full border-2 border-black">🎭 ${post.MOOD}</span>
+                    <span class="bg-mint px-3 py-1 rounded-full border-2 border-black">🎵 ${post.MUSIC_MOOD}</span>
+                `;
+                document.getElementById('post-content').textContent = post.POEM_TEXT || post.CONTENT || post.THEME;
+
+                if (post.USERNAME === currentUser || currentUser === 'admin') {
+                    document.getElementById('action-btns').classList.remove('hidden');
+                }
+
+                const likeBtn = document.getElementById('like-btn');
+                document.getElementById('like-count').textContent = post.LIKE_COUNT || 0;
+                if (post.IS_LIKED > 0) {
+                    likeBtn.classList.add('bg-red-50');
+                    document.getElementById('like-icon').textContent = '❤️';
+                }
+            } catch (e) {
+                showToast(e.message);
+            }
+        };
+
+        const loadComments = async () => {
+            try {
+                const res = await fetch(`/api/comments/${boardId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const comments = await res.json();
+                const list = document.getElementById('comments-list');
+                list.innerHTML = '';
+                
+                if(comments.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 font-bold text-center py-8">아직 댓글이 없습니다.</p>';
+                    return;
+                }
+
+                comments.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 border-2 border-black rounded-xl bg-gray-50 flex flex-col gap-2';
+                    const isMine = c.USERNAME === currentUser || currentUser === 'admin';
+                    const delBtnHtml = isMine ? `<button onclick="deleteComment(${c.ID})" class="text-red-500 hover:text-red-700 text-sm bg-white px-2 py-1 rounded border-2 border-red-200">삭제</button>` : '';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-black text-lg">${c.USERNAME}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-gray-500 text-sm font-bold">${new Date(c.CREATED_AT).toLocaleString()}</span>
+                                ${delBtnHtml}
+                            </div>
+                        </div>
+                        <div class="text-gray-800 font-medium">${c.COMMENT_TEXT}</div>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (e) { console.error(e); }
+        };
+
+        document.getElementById('like-btn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/likes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ board_id: boardId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error('오류');
+                
+                document.getElementById('like-count').textContent = data.count;
+                const btn = document.getElementById('like-btn');
+                if (data.isLiked) {
+                    btn.classList.add('bg-red-50');
+                    document.getElementById('like-icon').textContent = '❤️';
+                } else {
+                    btn.classList.remove('bg-red-50');
+                    document.getElementById('like-icon').textContent = '🤍';
+                }
+            } catch (e) { showToast('좋아요 처리 실패'); }
+        });
+
+        document.getElementById('comment-submit-btn').addEventListener('click', async () => {
+            const txt = document.getElementById('comment-input').value.trim();
+            if(!txt) return;
+            try {
+                const res = await fetch('/api/comments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ board_id: boardId, comment_text: txt })
+                });
+                if(res.ok) {
+                    document.getElementById('comment-input').value = '';
+                    loadComments();
+                }
+            } catch (e) { showToast('댓글 작성 실패'); }
+        });
+
+        window.deleteComment = async (cid) => {
+            if(!(await NeoModal.confirm('삭제하시겠습니까?'))) return;
+            await fetch(`/api/comments/${cid}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadComments();
+        };
+
+        document.getElementById('delete-btn').addEventListener('click', async () => {
+            if(!(await NeoModal.confirm('정말 게시글을 삭제하시겠습니까?'))) return;
+            try {
+                const res = await fetch(`/api/boards/${boardId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+                if(res.ok) {
+                    window.location.href = '/board.html';
+                } else {
+                    showToast('삭제 권한이 없습니다.');
+                }
+            } catch (e) { showToast('에러'); }
+        });
+
+        document.getElementById('edit-btn').addEventListener('click', async () => {
+            const newTitle = await NeoModal.prompt('수정할 제목을 입력하세요:', document.getElementById('post-title').textContent);
+            if(newTitle === null) return;
+            const newContent = await NeoModal.prompt('수정할 내용을 입력하세요:', document.getElementById('post-content').textContent);
+            if(newContent === null) return;
+            
+            try {
+                const res = await fetch(`/api/boards/${boardId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ title: newTitle, content: newContent })
+                });
+                if(res.ok) {
+                    showToast('수정되었습니다.');
+                    loadPost();
+                }
+            } catch (e) { showToast('수정 실패'); }
+        });
+
+        loadPost();
+        loadComments();
+    </script>
+</body>
+</html>

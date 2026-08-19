@@ -1,0 +1,26 @@
+# 의존성 모듈 폴더
+node_modules/
+
+# 환경 변수 및 시크릿 키
+.env
+.env.local
+.env.*
+
+# 유저 업로드 파일 (이미지 저장 등)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# 로그 파일
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# 기타 필요없는 파일
+test_jamendo.js
+auto_shutdown.ps1
+delete_user.js

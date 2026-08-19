@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공유 게시판 - 안단테 (Andante)</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="modal.js"></script>
+</head>
+<body class="bg-gray-50 text-slate-800">
+    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
+        <div class="header-brand flex items-center gap-3">
+            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0" style="cursor: pointer;" onclick="location.href='/'">
+                Andante
+            </h1>
+        </div>
+        <div class="header-nav flex items-center gap-2">
+            <span id="user-info" class="user-badge font-bold text-black text-xs hidden"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="icon-btn brutal-btn bg-sky text-black font-bold">마이 페이지</button>
+            <button onclick="location.href='/'" class="icon-btn brutal-btn bg-white text-black font-bold">홈으로</button>
+            <button id="logout-btn" class="icon-btn brutal-btn bg-red text-black font-bold">로그아웃</button>
+        </div>
+    </header>
+
+    <div style="max-width: 1200px; margin: 40px auto; padding: 20px;">
+        <h1 class="font-black text-3xl mb-8 text-center flex items-center justify-center gap-2">
+            공유 게시판
+        </h1>
+        
+        <div id="board-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px;">
+            <!-- Boards go here -->
+        </div>
+        
+        <div id="pagination-controls" style="display: flex; justify-content: center; gap: 10px; margin-top: 50px; flex-wrap: wrap;"></div>
+    </div>
+    
+    <div id="toast" class="hidden"></div>
+
+    <script>
+        const token = localStorage.getItem('authToken');
+        if (!token) window.location.href = '/login.html';
+        
+        const userInfoEl = document.getElementById('user-info');
+        userInfoEl.textContent = `${localStorage.getItem('authName') || localStorage.getItem('authUsername')}님`;
+        userInfoEl.classList.remove('hidden');
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => localStorage.removeItem(k));
+            window.location.href = '/login.html';
+        });
+
+        const showToast = (msg) => {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-bold shadow-brutal-sm z-50';
+            setTimeout(() => toast.className = 'hidden', 3000);
+        };
+
+        const loadBoards = async (page = 1) => {
+            const container = document.getElementById('board-container');
+            const pageControls = document.getElementById('pagination-controls');
+            container.innerHTML = '<div class="text-center p-8" style="grid-column: 1 / -1;"><div class="spinner mx-auto mb-4 border-black border-t-black"></div><p class="font-bold">불러오는 중...</p></div>';
+            pageControls.innerHTML = '';
+
+            try {
+                const res = await fetch(`/api/boards?page=${page}&limit=8`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+
+                container.innerHTML = '';
+                if (data.items.length === 0) {
+                    container.innerHTML = '<div class="brutal-card bg-white p-8 text-center font-bold text-gray-500" style="grid-column: 1 / -1;">아직 공유된 작품이 없습니다.</div>';
+                    return;
+                }
+
+                data.items.forEach(post => {
+                    const card = document.createElement('div');
+                    card.className = 'brutal-card bg-white p-4 transition-transform hover:-translate-y-2 cursor-pointer flex flex-col gap-3';
+                    card.style.flexDirection = 'column'; // Ensure vertical stacking
+                    card.onclick = () => { window.location.href = `/post.html?id=${post.ID}`; };
+
+                    const date = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                    card.innerHTML = `
+                        <div style="border: 2px solid black; border-radius: 12px; overflow: hidden; aspect-ratio: 1/1;">
+                            <img src="${post.IMAGE_BASE64}" alt="AI Artwork" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <h3 class="font-black text-lg truncate">${post.TITLE}</h3>
+                        <div class="flex justify-between items-center text-sm font-bold">
+                            <span class="bg-yellow px-2 py-1 rounded border-2 border-black">${post.USERNAME}</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 font-bold border-t-2 border-dashed border-gray-300 pt-2">
+                            <span>좋아요 ${post.LIKE_COUNT || 0}</span>
+                            <span>${date}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+                if (data.totalPages > 1) {
+                    for (let i = 1; i <= data.totalPages; i++) {
+                        const btn = document.createElement('button');
+                        btn.className = `brutal-btn px-4 py-2 ${i === data.currentPage ? 'bg-black text-white' : 'bg-white text-black'}`;
+                        btn.textContent = i;
+                        btn.onclick = () => loadBoards(i);
+                        pageControls.appendChild(btn);
+                    }
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="col-span-full brutal-card bg-red-100 p-8 text-center font-bold text-red-600">${e.message}</div>`;
+            }
+        };
+
+        loadBoards(1);
+    </script>
+</body>
+</html>

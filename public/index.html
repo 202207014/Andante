@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Andante | AI 감성 힐링 캔버스</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="modal.js"></script>
+    <script src="lib/theme-mapping.js"></script>
+    <script src="components/healing.js"></script>
+</head>
+<body class="theme-transition min-h-screen">
+    
+    <!-- Blur Blob Background -->
+    <div id="blob-bg" class="blob-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- 1. AppHeader & Brand -->
+    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
+        <div class="header-brand flex items-center gap-3">
+            <div>
+                <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
+                    Andante
+                </h1>
+                <p id="theme-concept-text" class="text-xs text-slate-600 font-medium margin-0">
+                    느리게 흐르는 민트빛 안단테
+                </p>
+            </div>
+        </div>
+
+        <!-- User Info & Nav Controls -->
+        <div class="header-nav flex items-center gap-2">
+            <span id="user-info" class="user-badge font-bold text-black text-xs"></span>
+            <button id="login-nav-btn" class="icon-btn brutal-btn bg-yellow text-black font-bold">로그인</button>
+            <button id="diary-btn" class="icon-btn brutal-btn bg-pink text-black font-bold hidden">📓 일기장</button>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="icon-btn brutal-btn bg-sky text-black font-bold hidden">👤 마이페이지</button>
+            <button onclick="location.href='/board.html'" class="icon-btn brutal-btn bg-mint text-black font-bold">🌐 공유게시판</button>
+            <button id="logout-btn" class="icon-btn brutal-btn bg-red text-black font-bold hidden">로그아웃</button>
+        </div>
+    </header>
+
+    <main id="main-content" class="container max-w-4xl mx-auto space-y-6 relative-z">
+        
+        <!-- Step 1: 마음 비우기 -->
+        <section id="step-1-input" style="margin-top: 3rem;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 2rem;">
+               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
+                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">1/3 - 마음 비우기</span>
+               </div>
+            </div>
+            
+            <div id="home-section" class="brutal-card bg-card p-6 space-y-6 animate-float-continuous">
+                <div class="card-header border-b-2 border-black pb-3 flex justify-between items-center">
+                    <h2 class="text-lg font-black text-black flex items-center gap-2 margin-0">
+                        <span>💭</span>
+                        <span>오늘의 마음 상태 진단</span>
+                    </h2>
+                    <div class="location-badge px-3 py-1 rounded-full border-2 border-black bg-sky text-xs font-bold shadow-brutal-sm">
+                        <span id="weather-badge">🌡️</span> <span id="current-location-text">위치 찾는 중...</span>
+                    </div>
+                </div>
+
+                <!-- Mood Selection Cards -->
+                <div class="input-group">
+                    <label class="block text-xs font-bold text-slate-700 mb-2">🎭 지금 느끼는 기분 (Mood)</label>
+                    <div id="mood-cards-container" class="grid grid-3 gap-2">
+                        <!-- Dynamic Mood Cards -->
+                    </div>
+                </div>
+
+                <!-- User Prompt Textarea -->
+                <div class="input-group mt-6">
+                    <label class="block text-xs font-bold text-slate-700 mb-2">✍️ 이야기 적기 (오늘 하루 또는 솔직한 기분)</label>
+                    <textarea id="mood-input" rows="8" placeholder="예: 오늘 비가 촉촉하게 내리는데 피곤하지만 커피 한 잔 마시며 혼자만의 쉼을 얻고 싶어..." class="brutal-textarea speech-bubble"></textarea>
+                </div>
+
+                <!-- Analyze Button -->
+                <div style="display: flex; justify-content: center; padding-top: 1.5rem;">
+                    <button id="analyze-btn" class="active-press transition-all disabled:opacity-50" style="width: 100%; max-width: 320px; padding: 16px 24px; border-radius: 16px; border: 2px solid black; background-color: var(--pastel-mint, #bbf7d0); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; color: black; font-size: 18px;">
+                        <span id="analyze-btn-text">안단테에게 마음 보내기</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loader -->
+        <div id="loader" class="hidden brutal-card text-center p-6 bg-yellow max-w-md mx-auto my-12">
+            <div class="spinner margin-auto"></div>
+            <p id="loader-text" class="font-bold text-black mt-6">AI 안단테가 당신의 마음을 가만히 보듬는 중입니다...</p>
+        </div>
+
+        <!-- Step 2: 마음 채우기 (시 감상) -->
+        <section id="step-2-poem" class="hidden w-full max-w-2xl mx-auto flex-col justify-center min-h-[50vh]" style="margin-top: 3rem;">
+            <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+               <button id="btn-back-to-1" class="active-press hover:bg-slate-50" style="padding: 8px 20px; font-size: 14px; font-weight: 900; background-color: white; border: 2px solid black; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">⬅ 이전 단계</button>
+               
+               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">2/3 - 마음 채우기</span>
+               </div>
+               
+               <div style="width: 100px;" class="hidden sm:block"></div>
+            </div>
+            
+            <div id="poem-card-slot"></div>
+
+            <div style="margin-top: 3rem; display: flex; justify-content: center; width: 100%;" id="step-2-next-wrapper">
+               <button id="btn-next-to-3" class="active-press" style="width: 100%; padding: 1.25rem 2rem; border-radius: 9999px; font-weight: bold; font-size: 1rem; color: black; background-color: var(--pastel-yellow, #fef08a); border: 2px solid black; box-shadow: 4px 4px 0px 0px #000;">다음: 나의 마음이 그려진 캔버스 보기 ➔</button>
+            </div>
+        </section>
+
+        <!-- Step 3: 마음 완성하기 (그림 & 음악) -->
+        <section id="step-3-canvas" class="hidden w-full space-y-8" style="margin-top: 3rem;">
+            <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+               <button id="btn-back-to-2" class="active-press hover:bg-slate-50" style="padding: 8px 20px; font-size: 14px; font-weight: 900; background-color: white; border: 2px solid black; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">⬅ 이전 단계</button>
+               
+               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
+                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
+                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">3/3 - 마음 완성하기</span>
+               </div>
+               
+               <div style="width: 100px;" class="hidden sm:block"></div>
+            </div>
+
+            <div id="music-sticker-slot" style="margin-bottom: 2rem;"></div>
+            
+            <div id="canvas-card-slot" style="margin-bottom: 2rem;"></div>
+
+            <div id="final-actions-slot"></div>
+            
+            <div style="margin-top: 3rem; padding-bottom: 2rem; display: flex; justify-content: center;">
+                <button id="btn-restart" class="active-press" style="padding: 12px 24px; border-radius: 9999px; font-weight: bold; font-size: 14px; color: black; background-color: white; border: 2px solid black; box-shadow: 2px 2px 0px 0px #000; cursor: pointer;">
+                    🔄 처음부터 다시 하기
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 일기장 페이지 뷰 -->
+    <section id="diary-section" class="hidden w-full space-y-6 relative-z pb-12 pt-8">
+        <div class="flex justify-between items-center mb-8 mx-auto" style="max-width: 1100px; padding: 0 60px;">
+            <h2 class="text-3xl font-black text-slate-800 drop-shadow-sm flex items-center gap-3">
+                <span>📓</span> 내 일기장
+            </h2>
+            <button id="close-posts-btn" class="brutal-btn bg-white text-black font-bold px-6 py-3 rounded-full shadow-brutal-sm hover:bg-slate-50 transition-colors">
+                돌아가기 ➔
+            </button>
+        </div>
+        
+        <div id="posts-loader" class="hidden text-center p-4">
+            <div class="spinner margin-auto"></div>
+            <p class="font-bold text-slate-700 mt-4">기록을 불러오는 중...</p>
+        </div>
+        
+        <div id="posts-container" class="w-full pt-4 pb-4">
+            <!-- Diary cards go here -->
+        </div>
+
+        <!-- 일기장 하단 음악 플레이어 -->
+        <div id="diary-music-player-container" class="mx-auto mt-4 transition-opacity duration-500" style="max-width: 1100px; opacity: 0; padding: 0 60px;">
+            <!-- Music player injected here -->
+        </div>
+    </section>
+
+    <!-- 게시판 공유 모달 -->
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content brutal-card bg-card max-w-md w-full text-center">
+            <h2 class="text-lg font-black text-black mb-2">🌐 공유 게시판 공유</h2>
+            <p class="text-xs text-slate-600 mb-4">안단테 힐링 작품을 다른 사람들과 함께 나눠보세요.</p>
+            <input type="hidden" id="share-diary-id">
+            <div class="input-group text-left mb-3">
+                <label class="text-xs font-bold text-black">제목</label>
+                <input type="text" id="share-title" placeholder="멋진 제목을 지어주세요" class="brutal-input">
+            </div>
+            <div class="input-group text-left mb-4">
+                <label class="text-xs font-bold text-black">내용</label>
+                <textarea id="share-content" rows="4" placeholder="작품에 대한 생각이나 감정을 자유롭게 적어주세요" class="brutal-textarea"></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button id="share-cancel-btn" class="flex-1 py-3 brutal-btn bg-slate-200 text-black font-bold">취소</button>
+                <button id="share-submit-btn" class="flex-1 py-3 brutal-btn bg-pink text-black font-bold">공유 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="hidden"></div>
+    <script src="app.js?v=3"></script>
+</body>
+</html>

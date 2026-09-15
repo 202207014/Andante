@@ -216,12 +216,100 @@ app.get('/api/weather', async (req, res) => {
     }
 });
 
+// ==========================================
+// 1.6 Jamendo Resilience BFF (Proxy, Cache, Fallback Chain)
+// ==========================================
+const TAG_FALLBACK_CHAIN = {
+    'dark': 'chillout',
+    'metal': 'rock',
+    'filmscore': 'ambient',
+    'reggae': 'chill',
+    'latin': 'pop',
+    'sad': 'piano',
+    'emotional': 'piano',
+    'downtempo': 'piano',
+};
+
+const jamendoCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+app.get('/api/music', async (req, res) => {
+    try {
+        const client_id = process.env.JAMENDO_CLIENT_ID || '39d0c23d'; // Fallback to test key if env is missing
+        const requestedTag = req.query.tag || 'chill';
+        
+        async function attemptFetch(tag) {
+            const cacheKey = `jamendo_${tag}`;
+            const now = Date.now();
+            const cached = jamendoCache.get(cacheKey);
+            if (cached && cached.expiresAt > now) {
+                return cached.data;
+            }
+
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=30&tags=${encodeURIComponent(tag)}`;
+            const response = await axios.get(url);
+            const results = response.data.results;
+            
+            if (results && results.length > 0) {
+                jamendoCache.set(cacheKey, { data: results, expiresAt: now + CACHE_TTL });
+                return results;
+            }
+            return null;
+        }
+
+        let results = await attemptFetch(requestedTag);
+
+        // [Phase 2] 0 Results 시 상위 호환 태그로 1회 재시도 (Safe Fallback Chain)
+        if (!results) {
+            const safeTag = TAG_FALLBACK_CHAIN[requestedTag] || 'chill';
+            console.warn(`[Jamendo BFF] 0 results for ${requestedTag}, retrying with safe tag: ${safeTag}`);
+            results = await attemptFetch(safeTag);
+        }
+
+        if (!results) {
+            return res.status(404).json({ error: 'NO_RESULTS_FOUND' });
+        }
+
+        // [Phase 2] HTTPS Protocol Normalization
+        const randomIdx = Math.floor(Math.random() * results.length);
+        const track = results[randomIdx];
+        const normalizedAudioUrl = track.audio.replace(/^http:\/\//i, 'https://');
+
+        return res.json({
+            success: true,
+            track: {
+                id: track.id,
+                name: track.name,
+                artist_name: track.artist_name,
+                audio: normalizedAudioUrl,
+                image: track.image
+            }
+        });
+
+    } catch (error) {
+        console.error('[Jamendo BFF] Error:', error.message);
+        if (error.response && error.response.status === 429) {
+            return res.status(429).json({ error: 'RATE_LIMIT_EXCEEDED' });
+        }
+        res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
+    }
+});
+
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
     try {
-        const { moodPrompt, rawData, weather = 'Sunny', location = 'Seoul', userProfile } = req.body;
-        const inputPrompt = moodPrompt || rawData || '';
+        const { story, situationTag, primaryCategory, batteryLevel, weather = '맑음', userProfile } = req.body;
         const provider = process.env.LLM_PROVIDER || 'gemini';
         
+        const user = {
+            gender: userProfile?.gender || '미지정',
+            batteryLevel: batteryLevel ?? 100,
+            primaryCategory: primaryCategory || '미지정',
+            situationTag: situationTag || '미지정',
+            story: story || '내용 없음'
+        };
+        
+        const inputPrompt = `에너지: ${user.batteryLevel}%, 상황: ${user.situationTag}\n일기: ${user.story}`;
+
         // Biorhythm calculation
         let bio = { physical: 50, emotional: 50, intellectual: 50 };
         if (userProfile && userProfile.birthDate) {
@@ -231,31 +319,43 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
             bio.intellectual = Math.round(Math.sin((2 * Math.PI * days) / 33) * 100);
         }
 
-        const systemPrompt = `당신은 사용자의 기분, 날씨, 바이오리듬(신체:${bio.physical}%, 감성:${bio.emotional}%, 지성:${bio.intellectual}%)을 종합 분석하는 안단테(Andante) AI 시인이자 음악 큐레이터입니다.
+        const systemPrompt = `당신은 사용자의 기분, 세부 상황, 에너지 배터리 충전량, 성별, 날씨, 바이오리듬(신체:${bio.physical}%, 감성:${bio.emotional}%, 지성:${bio.intellectual}%)을 종합 분석하는 전담 AI 개인화 음악 큐레이터 '안단테(Andante)'입니다.
 
-오직 아래 JSON 형식으로만 응답하며 다른 어떠한 텍스트도 포함하지 마세요:
+[사용자 프로필 및 컨텍스트]
+- 성별: ${user.gender || '미지정'}
+- 에너지 배터리 충전량: ${user.batteryLevel ?? 100}%
+- 선택한 6대 기본 감정 축: ${user.primaryCategory || '미지정'} (안정 & 만족, 활력 & 몰입, 잔잔함, 에너지 고갈 및 지침, 감정적 가라앉음, 정신적 과부하)
+- 세부 감정 및 상황 태그: ${user.situationTag || '미지정'}
+- 오늘 적은 이야기: "${user.story || '내용 없음'}"
+- 현재 날씨: ${weather || '맑음'}
+
+[큐레이션 및 시 작성 가이드]
+1. 사용자의 성별과 감정선에 부드럽게 스며드는 자연스러운 경청과 공감의 톤앤매너를 유지하세요.
+2. 에너지 배터리가 30% 이하인 방전/지침 상태일 때는 강요하지 않는 고요한 위로와 휴식을, 70% 이상 활력 상태일 때는 성취와 열정을 북돋는 역동적인 메시지를 담으세요.
+3. 시의 1절은 현재의 상황과 감정을 그대로 비춰주고, 2절은 감정 정화(힐링)와 회복을 돕는 방향으로 이끌어주세요.
+
+오직 아래 JSON 형식으로만 응답하며, 마크다운 코드블록이나 다른 어떠한 텍스트도 포함하지 마세요:
 {
     "poem": {
-        "title": "사용자의 기분과 입력에 완전히 어울리는 감각적인 시 제목 (예: 활기차면 역동적으로, 우울하면 차분하게)",
-        "stanza1": "1절 내용 (3~4줄 분량, 사용자의 현재 감정과 상태에 깊이 공감하고 동기화되는 어조)",
-        "stanza2": "2절 내용 (3~4줄 분량, 사용자의 기분을 증폭시키거나 위로해주는 감성적인 메시지)"
+        "title": "사용자의 세부 상황과 에너지 상태에 어울리는 감각적인 시 제목",
+        "stanza1": "1절 내용 (3~4줄 분량, 사용자의 감정과 에너지 수준에 깊이 공감하는 어조)",
+        "stanza2": "2절 내용 (3~4줄 분량, 감정 회복과 위로 또는 긍정 에너지를 주는 메시지)"
     },
     "structuredData": {
-        "primaryEmotion": "대표 감정 (예: 뜨거운 열정 / 잔잔한 평온 / 깊은 슬픔 등)",
-        "musicGenre": "추천 음악 태그 (아래 목록에서 감정에 맞는 1개만 신중히 선택, 기본값으로 lofi를 남용하지 말 것)",
-        "tempoBpm": "추천 템포 (예: 120 BPM 또는 72 BPM)",
-        "aiMusicTags": ["위에서 선택한 태그 1개"]
+        "primaryEmotion": "대표 감정 (예: 지침 & 힐링필요 / 차분한 평온 / 벅찬 설렘)",
+        "musicGenre": "추천 음악 태그 (아래 31종 허용 태그 중 사용자의 에너지/상태에 맞는 1개 선택)",
+        "tempoBpm": "추천 템포 (예: 68 BPM 또는 125 BPM)",
+        "aiMusicTags": ["musicGenre와 동일한 태그 1개"]
     },
-    "themeColor": "사용자 기분에 맞는 배경 컬러의 HEX 코드 (예: 열정적이면 #ffcccc, 평온하면 #ccf2ff, 우울하면 #e6e6fa)",
-    "imagePrompt": "An artistic and detailed image generation prompt representing the user's emotion and poem. Crucial: adapt the color palette and mood to the user's input (e.g. vibrant colors and dynamic mood for passion; pastel colors and peaceful mood for calm; dark and moody for sadness), high quality, digital painting, comma-separated English keywords.",
-    "weather": "날씨",
-    "mood": "사용자의 감정 (예: 열정, 우울, 평온)",
-    "theme": "시의 핵심 주제"
+    "imagePrompt": "An artistic digital painting representing the user's mood and poem. Reflect energy level and emotion, high quality, aesthetic pastel color palette, comma-separated English keywords.",
+    "weather": "${weather || '맑음'}",
+    "mood": "${user.primaryCategory || '평온'}",
+    "theme": "시의 핵심 힐링 테마"
 }
 
-[필수 사항]
-musicGenre와 aiMusicTags 배열 안에는 오직 아래의 허용된 태그 목록 중 단 1개만 선택해서 동일하게 적어주세요. 사용자의 감정에 가장 잘 어울리는 것을 고르세요.
-허용된 태그: chill, ambient, relax, piano, classical, sad, happy, electronic, energetic, upbeat, pop, jazz, rock, lounge`;
+[필수 태그 규칙]
+musicGenre와 aiMusicTags 배열 안에는 오직 아래의 허용된 31종 태그 목록 중 단 1개만 선택해서 동일하게 적어주세요. 'lofi'만 반복 선택하지 말고 상황과 에너지에 맞게 신중히 선택하세요.
+허용된 태그 (31종): pop, happy, rock, emotional, electronic, hiphop, jazz, indie, filmscore, classical, dark, dance, chillout, ambient, folk, metal, latin, rnb, reggae, punk, country, house, blues, energetic, sad, lofi, chill, relax, piano, upbeat, lounge`;
 
         if (provider === 'gemini') {
             const API_KEY = process.env.GEMINI_API_KEY;
@@ -296,21 +396,12 @@ app.post('/api/ai/image', authenticateToken, async (req, res) => {
         const API_KEY = process.env.HF_API_KEY;
         if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'HuggingFace API 키가 설정되지 않았습니다 (.env 파일 확인)' });
 
-        const response = await axios.post('https://router.huggingface.co/together/v1/images/generations', 
-            { 
-                model: 'black-forest-labs/FLUX.1-schnell', 
-                prompt: prompt,
-                response_format: 'b64_json'
-            },
-            { 
-                headers: { 
-                    'Authorization': `Bearer ${API_KEY}`, 
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+        const encodedPrompt = encodeURIComponent(prompt + " masterpiece, high quality, aesthetic, digital art");
+        const response = await axios.get(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`, {
+            responseType: 'arraybuffer'
+        });
 
-        const b64Data = response.data.data[0].b64_json;
+        const b64Data = Buffer.from(response.data).toString('base64');
         res.json({ image_base64: `data:image/jpeg;base64,${b64Data}` });
     } catch (err) {
         console.error("Image Gen Error:", err.response ? err.response.data : err.message);

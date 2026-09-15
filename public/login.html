@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -243,13 +243,13 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                localStorage.setItem('authToken', data.token);
-                localStorage.setItem('authUsername', data.username);
-                localStorage.setItem('authName', data.name);
-                localStorage.setItem('authGender', data.gender);
-                localStorage.setItem('authAge', data.age);
-                if (data.birthDate) localStorage.setItem('authBirthDate', data.birthDate);
-                if (data.mbti) localStorage.setItem('authMbti', data.mbti);
+                sessionStorage.setItem('authToken', data.token);
+                sessionStorage.setItem('authUsername', data.username);
+                sessionStorage.setItem('authName', data.name);
+                sessionStorage.setItem('authGender', data.gender);
+                sessionStorage.setItem('authAge', data.age);
+                if (data.birthDate) sessionStorage.setItem('authBirthDate', data.birthDate);
+                if (data.mbti) sessionStorage.setItem('authMbti', data.mbti);
                 window.location.href = '/';
             } catch (e) { showToast(e.message); }
         });

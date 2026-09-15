@@ -21,7 +21,7 @@
 
     <!-- 1. AppHeader & Brand -->
     <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3">
+        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
             <div>
                 <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
                     Andante
@@ -67,11 +67,46 @@
                     </div>
                 </div>
 
-                <!-- Mood Selection Cards -->
+                <!-- Mood Selection Cards (Figma Design) -->
                 <div class="input-group">
-                    <label class="block text-xs font-bold text-slate-700 mb-2">🎭 지금 느끼는 기분 (Mood)</label>
-                    <div id="mood-cards-container" class="grid grid-3 gap-2">
-                        <!-- Dynamic Mood Cards -->
+                    <label class="block text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <span>🔋</span> 오늘의 에너지 배터리 충전량 (0~100%)
+                    </label>
+                    
+                    <!-- Energy Battery Slider -->
+                    <div class="flex items-center gap-4 w-full mb-8">
+                        <!-- Percentage Text Label -->
+                        <div id="energy-percentage-text" class="w-16 flex-shrink-0 text-right font-black text-2xl text-black">
+                            100%
+                        </div>
+                        
+                        <!-- Neo-brutalism Slider Track Container -->
+                        <div class="relative flex-1 h-8 rounded-full border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center overflow-hidden pr-[3px]">
+                            <!-- Fill -->
+                            <div id="energy-fill" class="absolute top-0 left-0 h-full bg-[#52D273] transition-all duration-100 border-r-[3px] border-black pointer-events-none" style="width: 100%;"></div>
+                            
+                            <!-- Tick Marks (25, 50, 75) -->
+                            <div class="absolute top-0 left-1/4 w-[2px] h-full bg-black/20 z-0"></div>
+                            <div class="absolute top-0 left-2/4 w-[2px] h-full bg-black/20 z-0"></div>
+                            <div class="absolute top-0 left-3/4 w-[2px] h-full bg-black/20 z-0"></div>
+                            
+                            <!-- Range Input (Invisible overlay for interaction) -->
+                            <input 
+                                type="range" 
+                                id="energy-slider"
+                                min="0" max="100" 
+                                value="100"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            
+                            <!-- Visual Custom Thumb Overlay -->
+                            <div id="energy-thumb" class="absolute w-6 h-6 bg-white border-[3px] border-black rounded-full pointer-events-none transition-all duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-20" style="left: calc(100% - 24px);"></div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion Container -->
+                    <div id="mood-accordion-container" class="space-y-3 mt-4">
+                        <!-- Dynamic Accordions injected by app.js -->
                     </div>
                 </div>
 
@@ -90,11 +125,7 @@
             </div>
         </section>
 
-        <!-- Loader -->
-        <div id="loader" class="hidden brutal-card text-center p-6 bg-yellow max-w-md mx-auto my-12">
-            <div class="spinner margin-auto"></div>
-            <p id="loader-text" class="font-bold text-black mt-6">AI 안단테가 당신의 마음을 가만히 보듬는 중입니다...</p>
-        </div>
+        <!-- Neo-brutalism Asymptotic Loader Modal -->
 
         <!-- Step 2: 마음 채우기 (시 감상) -->
         <section id="step-2-poem" class="hidden w-full max-w-2xl mx-auto flex-col justify-center min-h-[50vh]" style="margin-top: 3rem;">
@@ -196,5 +227,30 @@
 
     <div id="toast" class="hidden"></div>
     <script src="app.js?v=3"></script>
+        <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);">
+            <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-6 py-8 border-[3px] border-black rounded-2xl transition-all duration-300" style="background-color: #FFE68C; box-shadow: 5px 5px 0px 0px rgba(0,0,0,1); transform: scale(1);">
+                
+                <!-- Animated Rotating Ring & Percentage -->
+                <div class="relative flex items-center justify-center w-24 h-24 mb-6">
+                    <svg class="absolute w-full h-full animate-[spin_3s_linear_infinite]" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="black" stroke-width="4" stroke-dasharray="60 40 40 40" stroke-linecap="round" />
+                        <circle cx="50" cy="50" r="35" fill="none" stroke="#52D273" stroke-width="4" stroke-dasharray="30 20 50 10" stroke-linecap="round" opacity="0.8" class="animate-[spin_4s_linear_infinite_reverse]" />
+                    </svg>
+                    <div class="text-2xl font-extrabold text-black drop-shadow-sm">
+                        <span id="loader-percentage">0</span><span class="text-sm">%</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Progress Text -->
+                <div class="h-10 mb-4 font-bold text-center text-slate-800 break-keep flex items-center justify-center" id="loader-text">
+                    적어주신 이야기 속 감정과 에너지 분석 중...
+                </div>
+
+                <!-- Neo-brutalism Progress Bar -->
+                <div class="w-full h-6 bg-white border-[3px] border-black rounded-full overflow-hidden" style="box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);">
+                    <div id="loader-bar" class="h-full bg-[#52D273] transition-all duration-300 ease-out border-r-[3px] border-black" style="width: 0%; opacity: 0;"></div>
+                </div>
+            </div>
+        </div>
 </body>
 </html>

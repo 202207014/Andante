@@ -58,7 +58,7 @@ const AndanteComponents = {
             <div style="font-size:11px; font-weight:bold; color:rgba(0,0,0,0.6);">🎵 ${artist}</div>
             <h4 style="font-size:16px; font-weight:bold; color:#000; margin:2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</h4>
           </div>
-          <button id="sticker-play-btn" class="active-press" style="width:42px; height:42px; border-radius:50%; border:2px solid #000; background:var(--pastel-mint); box-shadow:2px 2px 0px #000; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+          <button id="sticker-play-btn" class="active-press" style="width:42px; height:42px; flex-shrink:0; border-radius:50%; border:2px solid #000; background:var(--pastel-mint); box-shadow:2px 2px 0px #000; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;">
             ${isPlaying ? '⏸' : '▶'}
           </button>
         </div>

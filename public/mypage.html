@@ -10,8 +10,8 @@
 </head>
 <body class="bg-gray-50 text-slate-800">
     <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3">
-            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0" style="cursor: pointer;" onclick="location.href='/'">
+        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
+            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
                 Andante
             </h1>
         </div>
@@ -97,14 +97,14 @@
                 setTimeout(() => toast.className = 'hidden', 3000);
             };
 
-            const authToken = localStorage.getItem('authToken');
+            const authToken = sessionStorage.getItem('authToken');
             if (!authToken) {
                 window.location.href = '/login.html';
                 return;
             }
 
             document.getElementById('logout-btn').addEventListener('click', () => {
-                ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => localStorage.removeItem(k));
+                ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
                 window.location.href = '/';
             });
 
@@ -115,7 +115,7 @@
                 });
                 if (!res.ok) {
                     if(res.status === 401) {
-                        ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => localStorage.removeItem(k));
+                        ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
                         window.location.href = '/login.html';
                         return;
                     }
@@ -169,15 +169,15 @@
                     
                     showToast('정보가 성공적으로 수정되었습니다.');
                     
-                    localStorage.setItem('authName', name);
-                    localStorage.setItem('authGender', gender);
-                    localStorage.setItem('authAge', age);
-                    localStorage.setItem('authMbti', mbti);
+                    sessionStorage.setItem('authName', name);
+                    sessionStorage.setItem('authGender', gender);
+                    sessionStorage.setItem('authAge', age);
+                    sessionStorage.setItem('authMbti', mbti);
                     
                     if (password) {
                         showToast('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
                         setTimeout(() => {
-                            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => localStorage.removeItem(k));
+                            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
                             window.location.href = '/login.html';
                         }, 2000);
                     }

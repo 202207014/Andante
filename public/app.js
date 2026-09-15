@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let jamendoTrackInfo = null;
     
     // 유효성이 검증된(항상 결과가 있는) Jamendo 태그 목록
-    const VALID_JAMENDO_TAGS = ['lofi', 'chill', 'ambient', 'relax', 'piano', 'classical', 'sad', 'happy', 'electronic', 'energetic', 'upbeat', 'pop', 'jazz', 'rock'];
+    const VALID_JAMENDO_TAGS = ['pop', 'happy', 'rock', 'emotional', 'electronic', 'hiphop', 'jazz', 'indie', 'filmscore', 'classical', 'dark', 'dance', 'chillout', 'ambient', 'folk', 'metal', 'latin', 'rnb', 'reggae', 'punk', 'country', 'house', 'blues', 'energetic', 'sad', 'lofi', 'chill', 'relax', 'piano', 'upbeat', 'lounge'];
     
     function mapToValidJamendoTag(rawString) {
         if (!rawString) return 'relax';
@@ -161,28 +161,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadJamendoTrack(tags) {
-        const client_id = '39d0c23d';
-        let tagQuery = (tags && tags.length > 0) ? mapToValidJamendoTag(tags[0]) : 'chill';
+        // [Crucial Fix] Ignore AI's generated tag which often mismatches the context (e.g., suggesting 'chillout' for a lover's argument).
+        // Strictly use the curated selectedSafeTag which is perfectly mapped to the user's chosen situation.
+        let tagQuery = selectedSafeTag;
         try {
-            // limit=30을 주고 그 중에서 무작위로 하나를 선택해서 매번 다른 음악이 나오게 함
-            const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=30&tags=${encodeURIComponent(tagQuery)}`);
+            // [Phase 3] 클라이언트에서 직접 외부 도메인(api.jamendo.com)을 호출하지 않고, 내부 프록시(BFF) 라우트를 호출하여 애드블록 및 혼합 콘텐츠 에러 원천 차단
+            const res = await fetch(`/api/music?tag=${encodeURIComponent(tagQuery)}`);
+            
+            if (!res.ok) {
+                throw new Error(`BFF Request Failed: ${res.status}`);
+            }
+            
             const data = await res.json();
-            if (data.results && data.results.length > 0) {
-                const randomIdx = Math.floor(Math.random() * data.results.length);
-                jamendoTrackInfo = data.results[randomIdx];
+            if (data.success && data.track) {
+                jamendoTrackInfo = data.track;
                 jamendoAudio = new Audio(jamendoTrackInfo.audio);
                 jamendoAudio.volume = 0.8;
                 jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
             } else {
-                throw new Error("Jamendo returned 0 results for tag: " + tagQuery);
+                throw new Error("Invalid response format from BFF");
             }
         } catch(e) {
             console.error("Jamendo Load Error:", e);
-            // Fallback for network issues / Adblockers
+            // 1:1 Fallback Tracks Mapping for 18 Emotions
+            const FALLBACK_TRACKS = {
+                // LOVE
+                '답장 기다리며 애가 탐': { name: "애타는 기다림 (Anxious Waiting)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+                '좋아하는 사람 생각에 밤잠 설침': { name: "잠 못 이루는 새벽 (Sleepless Dawn)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+                '마주친 순간 멍해짐': { name: "시간이 멈춘 순간 (Time Stood Still)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+                '오래된 연인과의 편안한 데이트': { name: "익숙한 온기 (Familiar Warmth)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+                
+                // DOWN
+                '이별 후 먹먹함': { name: "텅 빈 방안 (Empty Room)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+                '이유 없이 마음이 텅 빔': { name: "공허한 울림 (Hollow Echo)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
+                '사소한 말에 깊게 베임': { name: "상처받은 영혼 (Fragile Soul)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" },
+                '세상에 혼자 남겨진 기분': { name: "외딴섬의 등대 (Lonely Lighthouse)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
+                
+                // OVERLOAD
+                '연인과 사소한 일로 다툼': { name: "어긋난 주파수 (Mismatched Frequency)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3" },
+                '인간관계 마찰로 부글거림': { name: "가라앉는 불꽃 (Fading Flame)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
+                '잡생각이 꼬리를 물고 안 멈춤': { name: "복잡한 회로 (Tangled Wires)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3" },
+                '실수 수습하느라 멘탈 흔들림': { name: "흔들리는 나침반 (Shaky Compass)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3" },
+                
+                // DEPLETED
+                '끝없는 과제/업무에 치임': { name: "과제를 넘기는 한숨 (Heavy Sigh)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3" },
+                '잠 부족으로 멍함': { name: "새벽녘 몽환의 숲 (Dreamy Dawn)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" },
+                '사람 만나는 게 기 빨림': { name: "혼자만의 방 (Room of Own)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3" },
+                '손가락 하나 까딱할 힘 없음': { name: "녹아내리는 멘탈 (Melting Point)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" },
+                
+                // CALM
+                '누구의 방해도 받기 싫음': { name: "침묵의 온기 (Warm Silence)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+                '조용히 나를 돌아보는 중': { name: "내면의 거울 (Inner Mirror)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+                '적당한 거리감이 편안함': { name: "평행선의 미학 (Parallel Lines)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+                '혼자만의 새벽 공기': { name: "차분한 새벽별 (Calm Morning Star)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+                
+                // ACTIVE
+                '원하던 목표를 달성함': { name: "작은 성취의 기쁨 (Joy of Achievement)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+                '영감과 의욕이 넘쳐남': { name: "번뜩이는 스파크 (Brilliant Spark)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
+                '잡념 없이 깊게 빠져드는 중': { name: "무아지경의 흐름 (State of Flow)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" },
+                '텐션 올리고 싶은 기분': { name: "끓어오르는 에너지 (Boiling Energy)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" }
+            };
+
+            const fallback = FALLBACK_TRACKS[selectedMood] || { name: "마음을 다독이는 피아노 (Healing Piano)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" };
+
             jamendoTrackInfo = {
-                name: "Healing Piano (Network Fallback)",
+                name: fallback.name,
                 artist_name: "Andante AI",
-                audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                audio: fallback.audio,
                 image: ""
             };
             jamendoAudio = new Audio(jamendoTrackInfo.audio);
@@ -213,20 +258,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // State Variables
     let selectedMbti = 'INFP';
-    let selectedMood = '🌿 평온함';
+    let selectedMood = '답장 기다리며 애가 탐';
     let currentAnalysis = null;
     let generatedImageUrl = null;
     let isPlayingMusic = false;
 
     // Auth State Check & Auto Populate
-    const token = localStorage.getItem('authToken');
+    const token = sessionStorage.getItem('authToken');
     if (!token) {
         window.location.href = '/login.html';
         return;
     }
-    const authName = localStorage.getItem('authName') || localStorage.getItem('authUsername');
-    const authBirthDate = localStorage.getItem('authBirthDate');
-    const authMbti = localStorage.getItem('authMbti');
+    const authName = sessionStorage.getItem('authName') || sessionStorage.getItem('authUsername');
+    const authBirthDate = sessionStorage.getItem('authBirthDate');
+    const authMbti = sessionStorage.getItem('authMbti');
     
     if (authBirthDate) {
         const birthInput = document.getElementById('birthdate-input');
@@ -262,33 +307,235 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (logoutBtn) {
         logoutBtn.onclick = () => {
-            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge'].forEach(k => localStorage.removeItem(k));
+            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge'].forEach(k => sessionStorage.removeItem(k));
             location.reload();
         };
     }
 
-    // 2. Render Mood Cards
-    const MOOD_LIST = ["🌧️ 울적함", "🌿 평온함", "☕ 잔잔한 고독", "✨ 지침 & 힐링필요", "🔥 열정적", "⛅ 피곤함"];
+    const HEALING_MOOD_DATA = [
+      {
+        id: "LOVE",
+        title: "설렘 & 사랑 ❤️",
+        subtitle: "새로운 시작, 몽글몽글한 애정, 또는 짝사랑의 열병",
+        headerColor: "#FFD1DC",
+        subSituations: [
+          { id: "love_1", label: "답장 기다리며 애가 탐", jamendoSafeTag: "indie", themeColor: "#FFE4E1" },
+          { id: "love_2", label: "좋아하는 사람 생각에 밤잠 설침", jamendoSafeTag: "acoustic", themeColor: "#FFF0F5" },
+          { id: "love_3", label: "마주친 순간 멍해짐", jamendoSafeTag: "happy", themeColor: "#FADADD" },
+          { id: "love_4", label: "오래된 연인과의 편안한 데이트", jamendoSafeTag: "folk", themeColor: "#F4C2C2" }
+        ]
+      },
+      {
+        id: "DOWN",
+        title: "감정적 가라앉음 & 이별 🌧️",
+        subtitle: "우울감, 상실감, 그리고 위로가 필요한 상태",
+        headerColor: "#CDE4F7",
+        subSituations: [
+          { id: "down_1", label: "이별 후 먹먹함", jamendoSafeTag: "emotional", themeColor: "#D4DAF0" },
+          { id: "down_2", label: "이유 없이 마음이 텅 빔", jamendoSafeTag: "sad", themeColor: "#DBD3D8" },
+          { id: "down_3", label: "사소한 말에 깊게 베임", jamendoSafeTag: "piano", themeColor: "#DFE2E6" },
+          { id: "down_4", label: "세상에 혼자 남겨진 기분", jamendoSafeTag: "ambient", themeColor: "#C9DAF8" }
+        ]
+      },
+      {
+        id: "OVERLOAD",
+        title: "과부하 & 관계 갈등 🤯",
+        subtitle: "스트레스, 다툼, 분노로 인해 머리가 복잡한 상태",
+        headerColor: "#FFD5D2",
+        subSituations: [
+          { id: "over_1", label: "연인과 사소한 일로 다툼", jamendoSafeTag: "downtempo", themeColor: "#F8C8DC" },
+          { id: "over_2", label: "인간관계 마찰로 부글거림", jamendoSafeTag: "chillout", themeColor: "#FFBCAa" },
+          { id: "over_3", label: "잡생각이 꼬리를 물고 안 멈춤", jamendoSafeTag: "ambient", themeColor: "#FFC0CB" },
+          { id: "over_4", label: "실수 수습하느라 멘탈 흔들림", jamendoSafeTag: "rock", themeColor: "#FADADD" }
+        ]
+      },
+      {
+        id: "DEPLETED",
+        title: "에너지 고갈 & 지침 🪫",
+        subtitle: "모든 에너지가 바닥나 아무것도 할 수 없는 상태",
+        headerColor: "#FFE0B2",
+        subSituations: [
+          { id: "dep_1", label: "끝없는 과제/업무에 치임", jamendoSafeTag: "relaxation", themeColor: "#FFD8B1" },
+          { id: "dep_2", label: "잠 부족으로 멍함", jamendoSafeTag: "meditation", themeColor: "#E8DDCB" },
+          { id: "dep_3", label: "사람 만나는 게 기 빨림", jamendoSafeTag: "ambient", themeColor: "#F3C1CE" },
+          { id: "dep_4", label: "손가락 하나 까딱할 힘 없음", jamendoSafeTag: "lofi", themeColor: "#D5E8D4" }
+        ]
+      },
+      {
+        id: "CALM",
+        title: "잔잔함 & 고독 🍵",
+        subtitle: "외부 자극을 차단하고 혼자만의 고요함을 찾는 상태",
+        headerColor: "#D5E8D4",
+        subSituations: [
+          { id: "calm_1", label: "누구의 방해도 받기 싫음", jamendoSafeTag: "ambient", themeColor: "#E1D5E7" },
+          { id: "calm_2", label: "조용히 나를 돌아보는 중", jamendoSafeTag: "piano", themeColor: "#CDE4F7" },
+          { id: "calm_3", label: "적당한 거리감이 편안함", jamendoSafeTag: "instrumental", themeColor: "#FFF2B2" },
+          { id: "calm_4", label: "혼자만의 새벽 공기", jamendoSafeTag: "chillout", themeColor: "#E8DDCB" }
+        ]
+      },
+      {
+        id: "ACTIVE",
+        title: "활력 & 성취 🔥",
+        subtitle: "강한 에너지, 몰입, 그리고 짜릿한 성취감",
+        headerColor: "#C2E2EC",
+        subSituations: [
+          { id: "act_1", label: "원하던 목표를 달성함", jamendoSafeTag: "upbeat", themeColor: "#C2E2EC" },
+          { id: "act_2", label: "영감과 의욕이 넘쳐남", jamendoSafeTag: "groove", themeColor: "#C9DAF8" },
+          { id: "act_3", label: "잡념 없이 깊게 빠져드는 중", jamendoSafeTag: "electronic", themeColor: "#D4DAF0" },
+          { id: "act_4", label: "텐션 올리고 싶은 기분", jamendoSafeTag: "dance", themeColor: "#DBD3D8" }
+        ]
+      }
+    ];
 
-    const moodContainer = document.getElementById('mood-cards-container');
-    if (moodContainer) {
-        moodContainer.innerHTML = '';
-        MOOD_LIST.forEach(m => {
+    let energyLevel = 100;
+    let expandedCategory = 'LOVE';
+
+    function renderAccordion() {
+        const energySlider = document.getElementById('energy-slider');
+        const energyFill = document.getElementById('energy-fill');
+        const energyThumb = document.getElementById('energy-thumb');
+        const energyText = document.getElementById('energy-percentage-text');
+        const accordionContainer = document.getElementById('mood-accordion-container');
+        
+        if (!energySlider || !accordionContainer) return;
+
+        energySlider.value = energyLevel;
+        if(energyFill) {
+            energyFill.style.width = `${energyLevel}%`;
+        }
+        if(energyThumb) {
+            energyThumb.style.left = `calc(${energyLevel}% - ${energyLevel * 0.24}px)`;
+        }
+        if(energyText) {
+            energyText.textContent = `${energyLevel}%`;
+        }
+
+        // Energy listener
+        energySlider.oninput = (e) => {
+            energyLevel = Number(e.target.value);
+            if(energyFill) {
+                energyFill.style.width = `${energyLevel}%`;
+            }
+            if(energyThumb) {
+                energyThumb.style.left = `calc(${energyLevel}% - ${energyLevel * 0.24}px)`;
+            }
+            if(energyText) {
+                energyText.textContent = `${energyLevel}%`;
+            }
+            
+            // Auto routing
+            if (energyLevel <= 30) {
+                if (expandedCategory !== 'DEPLETED' && expandedCategory !== 'DOWN') {
+                    expandedCategory = 'DEPLETED';
+                }
+            } else if (energyLevel >= 80) {
+                if (expandedCategory !== 'ACTIVE' && expandedCategory !== 'PROUD') {
+                    expandedCategory = 'ACTIVE';
+                }
+            }
+            renderAccordionHTML(accordionContainer);
+        };
+
+        renderAccordionHTML(accordionContainer);
+    }
+
+    let selectedSafeTag = 'indie';
+    let selectedThemeColor = '#FFE4E1';
+
+    function renderAccordionHTML(container) {
+        container.innerHTML = '';
+        HEALING_MOOD_DATA.forEach(category => {
+            const isExpanded = expandedCategory === category.id;
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex flex-col mb-3";
+
+            const card = document.createElement('div');
+            card.className = "relative rounded-[2rem] overflow-hidden flex flex-col";
+            card.style.backgroundColor = category.headerColor;
+            card.style.border = "3px solid black";
+            card.style.boxShadow = isExpanded ? "2px 2px 0px 0px black" : "4px 4px 0px 0px black";
+            card.style.transform = isExpanded ? "translate(2px, 2px)" : "none";
+            card.style.transition = "all 0.2s ease";
+
             const btn = document.createElement('button');
-            btn.className = `brutal-btn text-xs text-left ${m === selectedMood ? 'bg-yellow shadow-brutal-sm' : 'bg-card'}`;
-            btn.style.padding = '10px';
-            btn.textContent = m;
+            btn.className = "w-full py-4 px-5 flex justify-between items-center bg-transparent outline-none cursor-pointer";
+            
+            const textWrap = document.createElement('div');
+            textWrap.className = "flex flex-col items-start text-left";
+            textWrap.innerHTML = `<span class="font-bold text-lg text-black">${category.title}</span>`;
+            
+            if (isExpanded) {
+                const subEl = document.createElement('span');
+                subEl.className = "text-sm font-medium text-gray-800 mt-1 break-keep";
+                subEl.textContent = category.subtitle;
+                textWrap.appendChild(subEl);
+            }
+            
+            btn.appendChild(textWrap);
+            
+            const iconWrap = document.createElement('div');
+            iconWrap.className = "flex items-center justify-center bg-white border-2 border-black rounded-full flex-shrink-0";
+            iconWrap.style.width = '32px';
+            iconWrap.style.height = '32px';
+            iconWrap.innerHTML = `<span class="text-lg font-bold text-black leading-none">${isExpanded ? '−' : '+'}</span>`;
+            btn.appendChild(iconWrap);
+
             btn.onclick = (e) => {
                 e.preventDefault();
-                selectedMood = m;
-                document.querySelectorAll('#mood-cards-container button').forEach(b => {
-                    b.className = 'brutal-btn text-xs text-left bg-card';
-                });
-                btn.className = 'brutal-btn text-xs text-left bg-yellow shadow-brutal-sm';
+                expandedCategory = isExpanded ? null : category.id;
+                renderAccordionHTML(container);
             };
-            moodContainer.appendChild(btn);
+            card.appendChild(btn);
+
+            if (isExpanded) {
+                const chipArea = document.createElement('div');
+                chipArea.className = "flex items-stretch gap-2 mt-2 w-full";
+                
+                // 1. Branch Indicator
+                const branchWrap = document.createElement('div');
+                branchWrap.className = "flex flex-col items-center pt-3 pl-3 pr-2 flex-shrink-0 relative";
+
+                const branchCircle = document.createElement('div');
+                branchCircle.className = "w-2.5 h-2.5 rounded-full border-[3px] border-black bg-white z-10";
+
+                const branchLine = document.createElement('div');
+                branchLine.className = "absolute top-5 left-[16px] w-[3px] h-[100%] bg-black -z-10";
+
+                branchWrap.appendChild(branchCircle);
+                branchWrap.appendChild(branchLine);
+                chipArea.appendChild(branchWrap);
+
+                // 2. Flex Wrap Grid
+                const chipScroll = document.createElement('div');
+                chipScroll.className = "flex flex-wrap gap-2 flex-1 min-w-0 pr-4 pb-4 pt-1";
+
+                category.subSituations.forEach(sit => {
+                    const tagBtn = document.createElement('button');
+                    const isSelected = selectedMood === sit.label;
+                    tagBtn.className = `px-4 py-2 border-[3px] border-black rounded-full font-bold text-sm transition-all whitespace-normal text-left leading-tight cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-white text-black'}`;
+                    tagBtn.style.boxShadow = isSelected ? 'none' : '3px 3px 0px 0px black';
+                    tagBtn.style.transform = isSelected ? 'translate(2px, 2px)' : 'none';
+                    tagBtn.textContent = sit.label;
+                    
+                    tagBtn.onclick = (e) => {
+                        e.preventDefault();
+                        selectedMood = sit.label;
+                        selectedSafeTag = sit.jamendoSafeTag;
+                        selectedThemeColor = sit.themeColor;
+                        renderAccordionHTML(container);
+                    };
+                    chipScroll.appendChild(tagBtn);
+                });
+                chipArea.appendChild(chipScroll);
+                card.appendChild(chipArea);
+            }
+            wrapper.appendChild(card);
+            container.appendChild(wrapper);
         });
     }
+
+    renderAccordion();
 
     // Toast Utility
     const showToast = (msg) => {
@@ -311,12 +558,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const s3 = document.getElementById('step-3-canvas');
         const loader = document.getElementById('loader');
 
-        [s1, s2, s3, loader].forEach(el => {
+        [s1, s2, s3].forEach(el => {
             if (el) {
                 el.classList.add('hidden');
                 el.style.display = '';
             }
         });
+        if (loader) {
+            loader.classList.add('hidden');
+        }
 
         if (currentWizardStep === 1 && s1) s1.classList.remove('hidden');
         if (currentWizardStep === 2 && s2) s2.classList.remove('hidden');
@@ -339,11 +589,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const musicData = currentAnalysis.structuredData || {};
             const musicSlot = document.getElementById('music-sticker-slot');
             if (musicSlot) {
+                const rawTempo = musicData.tempoBpm || '70';
+                const formattedTempo = rawTempo.includes('BPM') ? rawTempo : `${rawTempo} BPM`;
+
                 musicSlot.innerHTML = window.AndanteComponents.renderMusicSticker({
                     title: jamendoTrackInfo ? jamendoTrackInfo.name : (musicData.musicGenre || 'Lo-Fi Acoustic'),
                     artist: jamendoTrackInfo ? jamendoTrackInfo.artist_name : "Andante AI",
                     image: jamendoTrackInfo ? jamendoTrackInfo.image : "",
-                    tags: musicData.aiMusicTags || [musicData.musicGenre || 'Healing', musicData.tempoBpm || '70 BPM', musicData.primaryEmotion || '평온함'],
+                    tags: [
+                        selectedMood,
+                        musicData.primaryEmotion || '평온함',
+                        formattedTempo
+                    ],
                     isPlaying: isPlayingMusic
                 });
                 const stickerBtn = musicSlot.querySelector('#sticker-play-btn');
@@ -454,9 +711,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (loader) {
                 loader.classList.remove('hidden');
+                // Allow a reflow before changing opacity
+                requestAnimationFrame(() => {
+                    loader.classList.remove('opacity-0', 'pointer-events-none');
+                    loader.classList.add('opacity-100', 'pointer-events-auto');
+                });
             }
             document.getElementById('step-1-input').classList.add('hidden'); // hide input during load
             analyzeBtn.disabled = true;
+
+            const loaderPercentage = document.getElementById('loader-percentage');
+            const loaderBar = document.getElementById('loader-bar');
+            const loaderText = document.getElementById('loader-text');
+            
+            let currentProgress = 0;
+            if (loaderPercentage) loaderPercentage.textContent = '0';
+            if (loaderBar) { loaderBar.style.width = '0%'; loaderBar.style.opacity = '1'; }
+            if (loaderText) loaderText.textContent = '적어주신 이야기 속 감정과 에너지 분석 중...';
+
+            // Asymptotic timer interval
+            const progressInterval = setInterval(() => {
+                let next = currentProgress;
+                if (currentProgress < 20) {
+                    next = currentProgress + Math.random() * 5 + 2;
+                } else if (currentProgress < 45) {
+                    next = currentProgress + Math.random() * 3 + 1;
+                } else if (currentProgress < 75) {
+                    next = currentProgress + Math.random() * 2 + 0.5;
+                } else if (currentProgress < 92) {
+                    next = currentProgress + Math.random() * 1 + 0.2;
+                } else if (currentProgress < 99) {
+                    next = currentProgress + 0.1;
+                }
+
+                if (next >= 20 && currentProgress < 20 && loaderText) loaderText.textContent = '마음을 다독이는 시 한 편을 짓는 중...';
+                if (next >= 45 && currentProgress < 45 && loaderText) loaderText.textContent = '기분과 호흡에 맞는 힐링 음악 탐색 중...';
+                if (next >= 75 && currentProgress < 75 && loaderText) loaderText.textContent = '안단테의 맞춤 힐링 처방을 정리하는 중...';
+
+                currentProgress = Math.min(next, 99);
+                if (loaderPercentage) loaderPercentage.textContent = Math.floor(currentProgress).toString();
+                if (loaderBar) loaderBar.style.width = `${currentProgress}%`;
+            }, 300);
 
             try {
                 const res = await fetch('/api/ai/analyze', {
@@ -466,12 +761,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        moodPrompt: `[MBTI: ${selectedMbti}] [기분: ${selectedMood}] ${moodPrompt}`,
+                        story: moodPrompt,
+                        situationTag: selectedMood,
+                        primaryCategory: HEALING_MOOD_DATA.find(c => c.id === expandedCategory)?.title || '미지정',
+                        batteryLevel: energyLevel,
                         weather: currentWeatherVal,
                         location: currentLocationVal,
                         userProfile: {
                             mbti: selectedMbti,
-                            birthDate: authBirthDate || '2000-01-01'
+                            birthDate: authBirthDate || '2000-01-01',
+                            gender: sessionStorage.getItem('authGender') || '미지정'
                         }
                     })
                 });
@@ -491,20 +790,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tags = data.structuredData?.aiMusicTags || [];
                 await loadJamendoTrack(tags);
 
-                // Dynamic Background Color Transition
-                if (data.themeColor) {
-                    document.body.style.backgroundColor = data.themeColor;
+                // Dynamic Background Color Transition using selectedThemeColor
+                if (selectedThemeColor) {
+                    data.themeColor = selectedThemeColor;
+                    document.body.style.backgroundColor = selectedThemeColor;
+                    document.body.style.transition = "background-color 2s ease";
                 }
+
+                clearInterval(progressInterval);
+                currentProgress = 100;
+                if (loaderPercentage) loaderPercentage.textContent = '100';
+                if (loaderBar) loaderBar.style.width = '100%';
+                if (loaderText) loaderText.textContent = '처방 완료!';
+                
+                const loaderCard = document.getElementById('loader-card');
+                if (loaderCard) loaderCard.style.transform = 'scale(1.05)';
+
+                await new Promise(r => setTimeout(r, 800));
 
                 currentWizardStep = 2; // Move to Step 2
                 updateWizardView();
 
             } catch (err) {
+                clearInterval(progressInterval);
                 showToast(err.message);
                 currentWizardStep = 1; // back to step 1 on fail
                 updateWizardView();
             } finally {
-                if (loader) loader.classList.add('hidden');
+                if (loader) {
+                    loader.classList.replace('opacity-100', 'opacity-0');
+                    loader.classList.replace('pointer-events-auto', 'pointer-events-none');
+                    setTimeout(() => {
+                        loader.classList.add('hidden');
+                        const loaderCard = document.getElementById('loader-card');
+                        if (loaderCard) loaderCard.style.transform = 'scale(1)';
+                    }, 300);
+                }
                 analyzeBtn.disabled = false;
             }
         };
@@ -756,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!track) {
                 console.warn('Jamendo API returned 0 results or failed. Using fallback track.');
                 track = {
-                    name: "Healing Piano (Fallback)",
+                    name: "마음을 다독이는 피아노 (Healing Piano)",
                     artist_name: "Andante AI",
                     audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
                     image: ""

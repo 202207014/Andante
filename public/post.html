@@ -10,8 +10,8 @@
 </head>
 <body class="bg-gray-50 text-slate-800">
     <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3">
-            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0" style="cursor: pointer;" onclick="location.href='/'">
+        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
+            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
                 Andante
             </h1>
         </div>
@@ -71,8 +71,8 @@
     <div id="toast" class="hidden"></div>
 
     <script>
-        const token = localStorage.getItem('authToken');
-        const currentUser = localStorage.getItem('authUsername');
+        const token = sessionStorage.getItem('authToken');
+        const currentUser = sessionStorage.getItem('authUsername');
         if (!token) window.location.href = '/login.html';
 
         const params = new URLSearchParams(window.location.search);

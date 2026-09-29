@@ -341,6 +341,15 @@ app.get('/api/freesound', async (req, res) => {
     }
 });
 
+const EMOTION_VISUAL_STYLES = {
+    love_romance: { colorPalette: 'warm pastels, soft pink, peach', lighting: 'golden hour, soft glowing light', subject: 'blooming flowers, two intertwined objects', artStyle: 'watercolor, dreamy illustration' },
+    emotional_down: { colorPalette: 'slate blue, deep gray, muted indigo', lighting: 'dim, overcast, rainy atmosphere', subject: 'raindrops on window, lone silhouette', artStyle: 'oil painting, melancholic expressionism' },
+    mental_overload: { colorPalette: 'high contrast, neon red, deep black', lighting: 'flickering neon, harsh shadows', subject: 'tangled threads, fractured mirrors', artStyle: 'rough acrylic, chaotic abstract' },
+    depleted_tired: { colorPalette: 'faded sepia, pale beige, dusty rose', lighting: 'soft twilight, muted fading light', subject: 'empty chair, wilting leaf, calm sea', artStyle: 'minimalism, soft pastel' },
+    quiet_neutral: { colorPalette: 'monochrome, soft gray, pale blue', lighting: 'diffused morning light', subject: 'still water, single rock, empty room', artStyle: 'zen illustration, flat vector' },
+    energy_focus: { colorPalette: 'vibrant orange, electric blue, neon green', lighting: 'bright cinematic lighting, glowing aura', subject: 'geometric shapes, ascending stairs', artStyle: 'cyberpunk, sharp digital art' }
+};
+
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
     try {
         const { story, situationTag, primaryCategory, batteryLevel, weather = '맑음', userProfile } = req.body;
@@ -349,63 +358,74 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
         const user = {
             gender: userProfile?.gender || '미지정',
             batteryLevel: batteryLevel ?? 100,
-            primaryCategory: primaryCategory || '미지정',
+            primaryCategory: primaryCategory || 'quiet_neutral',
             situationTag: situationTag || '미지정',
             story: story || '내용 없음'
         };
+
+        const bpmGuidance = user.batteryLevel <= 30 ? '60-75 BPM (Comforting)' : user.batteryLevel >= 70 ? '106-130 BPM (Dynamic Energy)' : '80-100 BPM (Moderate)';
         
         const inputPrompt = `에너지: ${user.batteryLevel}%, 상황: ${user.situationTag}\n일기: ${user.story}`;
 
-        // Biorhythm calculation
-        let bio = { physical: 50, emotional: 50, intellectual: 50 };
-        if (userProfile && userProfile.birthDate) {
-            const days = Math.floor(Math.abs(Date.now() - new Date(userProfile.birthDate).getTime()) / (1000 * 60 * 60 * 24));
-            bio.physical = Math.round(Math.sin((2 * Math.PI * days) / 23) * 100);
-            bio.emotional = Math.round(Math.sin((2 * Math.PI * days) / 28) * 100);
-            bio.intellectual = Math.round(Math.sin((2 * Math.PI * days) / 33) * 100);
-        }
+        const systemPrompt = `You are a therapeutic AI curator 'Andante'.
+User context: Gender=${user.gender}, Energy=${user.batteryLevel}%, Emotion Axis=${user.primaryCategory}, Trigger=${user.situationTag}. Weather=${weather}.
+User Story: "${user.story}"
 
-        const systemPrompt = `당신은 사용자의 기분, 세부 상황, 에너지 배터리 충전량, 성별, 날씨, 바이오리듬(신체:${bio.physical}%, 감성:${bio.emotional}%, 지성:${bio.intellectual}%)을 종합 분석하는 전담 AI 개인화 음악 큐레이터 '안단테(Andante)'입니다.
+[Instructions]
+1. Sympathize with the user's current situation.
+2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity).
+3. Recommend 1 music tag from this EXACT list: [pop, happy, rock, emotional, electronic, hiphop, jazz, indie, filmscore, classical, dark, dance, chillout, ambient, folk, metal, latin, rnb, reggae, punk, country, house, blues, energetic, sad, lofi, chill, relax, piano, upbeat, lounge].
+4. Consider energy: ${bpmGuidance}.
 
-[사용자 프로필 및 컨텍스트]
-- 성별: ${user.gender || '미지정'}
-- 에너지 배터리 충전량: ${user.batteryLevel ?? 100}%
-- 선택한 6대 기본 감정 축: ${user.primaryCategory || '미지정'} (안정 & 만족, 활력 & 몰입, 잔잔함, 에너지 고갈 및 지침, 감정적 가라앉음, 정신적 과부하)
-- 세부 감정 및 상황 태그: ${user.situationTag || '미지정'}
-- 오늘 적은 이야기: "${user.story || '내용 없음'}"
-- 현재 날씨: ${weather || '맑음'}
-
-[큐레이션 및 시 작성 가이드]
-1. 사용자의 성별과 감정선에 부드럽게 스며드는 자연스러운 경청과 공감의 톤앤매너를 유지하세요.
-2. 에너지 배터리가 30% 이하인 방전/지침 상태일 때는 강요하지 않는 고요한 위로와 휴식을, 70% 이상 활력 상태일 때는 성취와 열정을 북돋는 역동적인 메시지를 담으세요.
-3. 시의 1절은 현재의 상황과 감정을 그대로 비춰주고, 2절은 감정 정화(힐링)와 회복을 돕는 방향으로 이끌어주세요.
-
-오직 아래 JSON 형식으로만 응답하며, 마크다운 코드블록이나 다른 어떠한 텍스트도 포함하지 마세요:
+Return ONLY a valid JSON object. Do NOT include markdown backticks like \`\`\`json.
+Format:
 {
     "poem": {
-        "title": "사용자의 세부 상황과 에너지 상태에 어울리는 감각적인 시 제목",
-        "stanza1": "1절 내용 (3~4줄 분량, 사용자의 감정과 에너지 수준에 깊이 공감하는 어조)",
-        "stanza2": "2절 내용 (3~4줄 분량, 감정 회복과 위로 또는 긍정 에너지를 주는 메시지)"
+        "title": "Poem title",
+        "stanza1": "Stanza 1 content (empathy)",
+        "stanza2": "Stanza 2 content (healing)"
     },
+    "visualDirection": {
+        "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
+        "keySubject": "Key subject (object or silhouette)",
+        "lighting": "Lighting",
+        "colorTone": "Color palette"
+    },
+    "imagePrompt": "An English prompt combining sceneSetting, keySubject, lighting, and colorTone. No text, no human faces, cinematic digital painting",
     "structuredData": {
-        "primaryEmotion": "대표 감정 (예: 지침 & 힐링필요 / 차분한 평온 / 벅찬 설렘)",
-        "musicGenre": "추천 음악 태그 (아래 31종 허용 태그 중 사용자의 에너지/상태에 맞는 1개 선택)",
-        "tempoBpm": "추천 템포 (예: 68 BPM 또는 125 BPM)",
-        "aiMusicTags": ["musicGenre와 동일한 태그 1개"]
+        "musicGenre": "one_tag_from_list",
+        "tempoBpm": "suggested BPM",
+        "aiMusicTags": ["same tag as musicGenre"]
     },
-    "imagePrompt": "An artistic digital painting representing the user's mood and poem. Reflect energy level and emotion, high quality, aesthetic pastel color palette, comma-separated English keywords.",
-    "weather": "${weather || '맑음'}",
-    "mood": "${user.primaryCategory || '평온'}",
-    "theme": "시의 핵심 힐링 테마"
-}
-
-[필수 태그 규칙]
-musicGenre와 aiMusicTags 배열 안에는 오직 아래의 허용된 31종 태그 목록 중 단 1개만 선택해서 동일하게 적어주세요. 'lofi'만 반복 선택하지 말고 상황과 에너지에 맞게 신중히 선택하세요.
-허용된 태그 (31종): pop, happy, rock, emotional, electronic, hiphop, jazz, indie, filmscore, classical, dark, dance, chillout, ambient, folk, metal, latin, rnb, reggae, punk, country, house, blues, energetic, sad, lofi, chill, relax, piano, upbeat, lounge`;
+    "empathyMessage": "Short comforting message",
+    "weather": "${weather}",
+    "mood": "${user.primaryCategory}",
+    "theme": "Core healing theme"
+}`;
 
         if (provider === 'gemini') {
             const API_KEY = process.env.GEMINI_API_KEY;
-            if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'Gemini API 키가 설정되지 않았습니다 (.env 파일 확인)' });
+            if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'Gemini API 키 오류' });
+            
+            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+                contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
+            });
+            const rawText = response.data.candidates[0].content.parts[0].text;
+            const cleanedText = rawText.replace(/^\s*```json\s*/im, '').replace(/```\s*$/im, '').trim();
+            const parsed = JSON.parse(cleanedText);
+            
+            // Inject primaryCategory for the next step (image generation)
+            parsed.primaryCategory = user.primaryCategory;
+            
+            res.json(parsed);
+        } else {
+            res.status(500).json({ error: 'Only Gemini supported in this architecture' });
+        }
+    } catch (err) {
+        console.error('AI Analyze Error:', err.message);
+        res.status(500).json({ error: 'AI 분석 실패' });
+    }
+});
             
             const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
                 contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n입력 데이터: ${inputPrompt}` }] }]
@@ -438,9 +458,32 @@ musicGenre와 aiMusicTags 배열 안에는 오직 아래의 허용된 31종 태�
 
 app.post('/api/ai/image', authenticateToken, async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, primaryCategory } = req.body;
         const API_KEY = process.env.HF_API_KEY;
-        if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'HuggingFace API 키가 설정되지 않았습니다 (.env 파일 확인)' });
+        if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'HF API 키 오류' });
+
+        const style = EMOTION_VISUAL_STYLES[primaryCategory] || EMOTION_VISUAL_STYLES.quiet_neutral;
+        
+        // 1차: 프롬프트 베이스라인 결합 (시각 스타일)
+        const baselinePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}`;
+        const combinedPrompt = `${prompt}, ${baselinePrompt}, masterpiece, high quality, aesthetic, digital art`;
+        
+        // 2차: 강제 네거티브 제약 조건 (URL 파라미터 결합)
+        const negativeConstraints = 'nsfw, nudity, suggestive, cleavage, blood, violence, weapon, grotesque, blurry, text, watermark, signature, face close-up, human faces';
+        
+        const encodedPrompt = encodeURIComponent(combinedPrompt);
+        const encodedNegative = encodeURIComponent(negativeConstraints);
+        
+        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&negative=${encodedNegative}`;
+        
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const b64Data = Buffer.from(response.data).toString('base64');
+        res.json({ image_base64: `data:image/jpeg;base64,${b64Data}` });
+    } catch (err) {
+        console.error('AI Image Error:', err.message);
+        res.status(500).json({ error: '이미지 생성 실패' });
+    }
+});
 
         const encodedPrompt = encodeURIComponent(prompt + " masterpiece, high quality, aesthetic, digital art");
         const response = await axios.get(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`, {

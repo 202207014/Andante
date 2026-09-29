@@ -874,7 +874,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ prompt: promptStr })
+                body: JSON.stringify({ 
+                    prompt: promptStr,
+                    primaryCategory: currentAnalysis.primaryCategory 
+                })
             });
 
             const data = await res.json();

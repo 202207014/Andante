@@ -18,16 +18,34 @@ export async function POST(req: Request) {
         const systemPrompt = `You are a therapeutic AI curator. 
 User context: Gender=${gender}, Energy=${batteryLevel}%, Emotion Axis=${primaryCategory}, Trigger=${situationTag}.
 User Story: "${story}"
-Recommend 1 single music genre/tag from this EXACT list: [${VALID_JAMENDO_TAGS.join(', ')}].
-Consider the energy: ${bpmGuidance}.
+
+[Instructions]
+1. Sympathize with the user's current situation.
+2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity).
+3. Recommend 1 music tag from this EXACT list: [${VALID_JAMENDO_TAGS.join(', ')}].
+4. Consider energy: ${bpmGuidance}.
+
 Return ONLY a valid JSON object. Do NOT include markdown backticks like \`\`\`json.
 Format:
 {
-  "musicGenre": "one_tag_from_list",
-  "aiMusicTags": "one_tag_from_list",
-  "empathyMessage": "A short comforting message (max 2 sentences)",
-  "poemTitle": "Title of the short poem",
-  "poemContent": "A 4-line comforting poem"
+    "poem": {
+        "title": "Poem title",
+        "stanza1": "Stanza 1 content (empathy)",
+        "stanza2": "Stanza 2 content (healing)"
+    },
+    "visualDirection": {
+        "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
+        "keySubject": "Key subject (object or silhouette)",
+        "lighting": "Lighting",
+        "colorTone": "Color palette"
+    },
+    "imagePrompt": "An English prompt strictly combining sceneSetting, keySubject, lighting, and colorTone. No text, no human faces, cinematic digital painting",
+    "structuredData": {
+        "musicGenre": "one_tag_from_list",
+        "tempoBpm": "suggested BPM"
+    },
+    "empathyMessage": "Short comforting message",
+    "theme": "Core healing theme"
 }`;
 
         // 2. Fetch from Gemini
@@ -41,15 +59,25 @@ Format:
         });
         const gData = await geminiRes.json();
         
-        // 3. Clean Markdown & Parse JSON
+        // 3. Clean Markdown & Parse JSON safely
         let rawText = gData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        rawText = rawText.replace(/^[\s\S]*?```json\s*/i, '').replace(/```\s*$/i, '').trim();
         const parsed = JSON.parse(rawText);
 
-        // 4. Visual Style Mapping & Pollinations AI
+        // 4. Visual Style Mapping & Pollinations AI (Double Defense)
         const style = EMOTION_VISUAL_STYLES[primaryCategory] || EMOTION_VISUAL_STYLES.quiet_neutral;
-        const imagePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}, masterpiece, high resolution, aesthetic`;
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
+        
+        // 1차: 프롬프트 베이스라인 결합 (시각 스타일)
+        const baselinePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}`;
+        const combinedPrompt = `${parsed.imagePrompt}, ${baselinePrompt}, masterpiece, high resolution, aesthetic, digital art`;
+        
+        // 2차: 강제 네거티브 제약 조건 (URL 파라미터 결합)
+        const negativeConstraints = 'nsfw, nudity, suggestive, cleavage, blood, violence, weapon, grotesque, blurry, text, watermark, signature, face close-up, human faces';
+
+        const encodedPrompt = encodeURIComponent(combinedPrompt);
+        const encodedNegative = encodeURIComponent(negativeConstraints);
+
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&negative=${encodedNegative}`;
 
         return NextResponse.json({
             ...parsed,

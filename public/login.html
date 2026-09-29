@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -275,6 +275,18 @@
                 showToast('회원가입 성공! 로그인해 주세요.');
                 toggleBtn.click();
             } catch (e) { showToast(e.message); }
+        });
+
+        // Add Enter key support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default form submission or newline
+                if (isReg) {
+                    regBtn.click();
+                } else {
+                    loginBtn.click();
+                }
+            }
         });
     </script>
 </body>

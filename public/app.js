@@ -60,16 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const timeOfDay = (hour >= 5 && hour < 17) ? 'morning' : 'night';
         let query = `${timeOfDay} ${weather} relaxing`;
-        const FREESOUND_API_KEY = 'x6p0xIMBjuswaNGwaQ0P3WO4fEMoPN2GeELTQFAu';
-        
         try {
-            let res = await fetch(`https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${FREESOUND_API_KEY}&fields=id,name,previews&filter=tag:music`);
+            let res = await fetch(`/api/freesound?query=${encodeURIComponent(query)}`);
             let data = await res.json();
             
             // Fallback to broader query if 0 results
             if (!data.results || data.results.length === 0) {
                 query = 'relaxing piano ambient';
-                res = await fetch(`https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${FREESOUND_API_KEY}&fields=id,name,previews&filter=tag:music`);
+                res = await fetch(`/api/freesound?query=${encodeURIComponent(query)}`);
                 data = await res.json();
             }
 
@@ -1079,10 +1077,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (musicMood && musicMood.startsWith('ID:')) {
                 const trackId = musicMood.split(':')[1];
-                const jamendoRes = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=39d0c23d&format=json&id[]=${trackId}`);
+                const jamendoRes = await fetch(`/api/music?id=${trackId}`);
                 const jamendoData = await jamendoRes.json();
-                if (jamendoData.results && jamendoData.results.length > 0) {
-                    track = jamendoData.results[0];
+                if (jamendoData.success && jamendoData.track) {
+                    track = jamendoData.track;
                     displayTag = '저장된 추천 곡';
                 }
             }
@@ -1090,11 +1088,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!track) {
                 const safeTag = mapToValidJamendoTag(musicMood);
                 displayTag = safeTag;
-                const jamendoRes = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=39d0c23d&format=json&limit=30&tags=${safeTag}`);
+                const jamendoRes = await fetch(`/api/music?tag=${safeTag}`);
                 const jamendoData = await jamendoRes.json();
-                if (jamendoData.results && jamendoData.results.length > 0) {
-                    const randomIdx = Math.floor(Math.random() * jamendoData.results.length);
-                    track = jamendoData.results[randomIdx];
+                if (jamendoData.success && jamendoData.track) {
+                    track = jamendoData.track;
                 }
             }
 

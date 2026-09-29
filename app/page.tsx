@@ -125,11 +125,10 @@ export default function AndanteDashboard() {
   const loadJamendoTrack = async (rawTag: string) => {
       const tagQuery = mapToValidJamendoTag(rawTag);
       try {
-          const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=39d0c23d&format=json&limit=30&tags=${encodeURIComponent(tagQuery)}`);
+          const res = await fetch(`/api/music?tag=${encodeURIComponent(tagQuery)}`);
           const jamData = await res.json();
-          if (jamData.results && jamData.results.length > 0) {
-              const randomIdx = Math.floor(Math.random() * jamData.results.length);
-              setJamendoTrackInfo(jamData.results[randomIdx]);
+          if (jamData.success && jamData.track) {
+              setJamendoTrackInfo(jamData.track);
           } else {
               throw new Error("No Jamendo results");
           }

@@ -235,8 +235,35 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 app.get('/api/music', async (req, res) => {
     try {
-        const client_id = process.env.JAMENDO_CLIENT_ID || '39d0c23d'; // Fallback to test key if env is missing
-        const requestedTag = req.query.tag || 'chill';
+        // 백엔드 환경 변수에서 가져옵니다 (없으면 Fallback)
+        const client_id = process.env.JAMENDO_CLIENT_ID || '39d0c23d';
+        const requestedTag = req.query.tag;
+        const requestedId = req.query.id;
+        
+        if (requestedId) {
+            // ID로 직접 검색 (Freesound 대신 Jamendo 트랙 재생 등에서 사용됨)
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&id[]=${requestedId}`;
+            const response = await axios.get(url);
+            const results = response.data.results;
+            
+            if (results && results.length > 0) {
+                const track = results[0];
+                return res.json({
+                    success: true,
+                    track: {
+                        id: track.id,
+                        name: track.name,
+                        artist_name: track.artist_name,
+                        audio: track.audio.replace(/^http:\/\//i, 'https://'),
+                        image: track.image
+                    }
+                });
+            }
+            return res.status(404).json({ error: 'NO_RESULTS_FOUND' });
+        }
+
+        // Tag 기반 추천 로직
+        const searchTag = requestedTag || 'chill';
         
         async function attemptFetch(tag) {
             const cacheKey = `jamendo_${tag}`;
@@ -257,12 +284,12 @@ app.get('/api/music', async (req, res) => {
             return null;
         }
 
-        let results = await attemptFetch(requestedTag);
+        let results = await attemptFetch(searchTag);
 
         // [Phase 2] 0 Results 시 상위 호환 태그로 1회 재시도 (Safe Fallback Chain)
         if (!results) {
-            const safeTag = TAG_FALLBACK_CHAIN[requestedTag] || 'chill';
-            console.warn(`[Jamendo BFF] 0 results for ${requestedTag}, retrying with safe tag: ${safeTag}`);
+            const safeTag = TAG_FALLBACK_CHAIN[searchTag] || 'chill';
+            console.warn(`[Jamendo BFF] 0 results for ${searchTag}, retrying with safe tag: ${safeTag}`);
             results = await attemptFetch(safeTag);
         }
 
@@ -292,6 +319,25 @@ app.get('/api/music', async (req, res) => {
             return res.status(429).json({ error: 'RATE_LIMIT_EXCEEDED' });
         }
         res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
+    }
+});
+
+// --- NEW FREESOUND BFF ---
+app.get('/api/freesound', async (req, res) => {
+    try {
+        const query = req.query.query;
+        if (!query) return res.status(400).json({ error: 'query parameter is required' });
+        
+        // Use environment variable, fallback to the hardcoded key to prevent immediate break
+        const apiKey = process.env.FREESOUND_API_KEY || 'x6p0xIMBjuswaNGwaQ0P3WO4fEMoPN2GeELTQFAu';
+        
+        const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${apiKey}&fields=id,name,previews&filter=tag:music`;
+        const response = await axios.get(url);
+        
+        return res.json(response.data);
+    } catch (error) {
+        console.error('[Freesound BFF Error]', error.message);
+        res.status(500).json({ error: 'FREESOUND_API_ERROR' });
     }
 });
 

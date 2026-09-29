@@ -426,35 +426,7 @@ Format:
         res.status(500).json({ error: 'AI 분석 실패' });
     }
 });
-            
-            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
-                contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n입력 데이터: ${inputPrompt}` }] }]
-            });
-            const rawText = response.data.candidates[0].content.parts[0].text;
-            const cleanedText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            res.json(JSON.parse(cleanedText));
-        } else {
-            // Ollama (로컬)
-            const model = process.env.OLLAMA_MODEL || 'qwen3';
-            const response = await axios.post('http://127.0.0.1:11434/api/generate', {
-                model: model,
-                prompt: `${systemPrompt}\n\n입력 데이터: ${inputPrompt}`,
-                stream: false
-            });
-            let rawText = response.data.response || '';
-            // Remove think blocks if any
-            rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '');
-            // Extract json block
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            const cleanedText = jsonMatch ? jsonMatch[0] : rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            res.json(JSON.parse(cleanedText));
-        }
-    } catch (err) {
-        console.error("AI Analyze Error:", err.response ? err.response.data : err.message, err.stack);
-        res.status(500).json({ error: 'AI 분석 실패: ' + (err.message || '') });
-    }
-});
+
 
 app.post('/api/ai/image', authenticateToken, async (req, res) => {
     try {
@@ -485,18 +457,7 @@ app.post('/api/ai/image', authenticateToken, async (req, res) => {
     }
 });
 
-        const encodedPrompt = encodeURIComponent(prompt + " masterpiece, high quality, aesthetic, digital art");
-        const response = await axios.get(`https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`, {
-            responseType: 'arraybuffer'
-        });
 
-        const b64Data = Buffer.from(response.data).toString('base64');
-        res.json({ image_base64: `data:image/jpeg;base64,${b64Data}` });
-    } catch (err) {
-        console.error("Image Gen Error:", err.response ? err.response.data : err.message);
-        res.status(500).json({ error: '이미지 생성 실패' });
-    }
-});
 
 // ==========================================
 // 2. 일기장 API (V3: 이미지 저장 방식 변경)

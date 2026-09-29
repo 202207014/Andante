@@ -35,11 +35,11 @@ Format:
     },
     "visualDirection": {
         "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
-        "keySubject": "Key subject (object or silhouette)",
+        "keySubject": "MUST BE scenery, landscape, or inanimate objects (e.g., empty study desk, night city lights, quiet road). NO humans, NO girls, NO characters.",
         "lighting": "Lighting",
         "colorTone": "Color palette"
     },
-    "imagePrompt": "An English prompt strictly combining sceneSetting, keySubject, lighting, and colorTone. No text, no human faces, cinematic digital painting",
+    "imagePrompt": "A pure landscape or still-life digital painting. Specify wide angle or environmental shot. EXCLUDE any human presence, no girls, no portraits.",
     "structuredData": {
         "musicGenre": "one_tag_from_list",
         "tempoBpm": "suggested BPM"
@@ -69,10 +69,10 @@ Format:
         
         // 1차: 프롬프트 베이스라인 결합 (시각 스타일)
         const baselinePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}`;
-        const combinedPrompt = `${parsed.imagePrompt}, ${baselinePrompt}, masterpiece, high resolution, aesthetic, digital art`;
+        const combinedPrompt = `pure landscape scenery, background art, no people, wide environmental shot, ${parsed.imagePrompt}, ${baselinePrompt}, masterpiece, high resolution, aesthetic, digital art`;
         
         // 2차: 강제 네거티브 제약 조건 (URL 파라미터 결합)
-        const negativeConstraints = 'nsfw, nudity, suggestive, cleavage, blood, violence, weapon, grotesque, blurry, text, watermark, signature, face close-up, human faces';
+        const negativeConstraints = 'girl, woman, boy, man, human, person, people, face, portrait, close-up, character, anime face, nsfw, text, watermark, signature';
 
         const encodedPrompt = encodeURIComponent(combinedPrompt);
         const encodedNegative = encodeURIComponent(negativeConstraints);

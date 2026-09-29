@@ -387,11 +387,11 @@ Format:
     },
     "visualDirection": {
         "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
-        "keySubject": "Key subject (object or silhouette)",
+        "keySubject": "MUST BE scenery, landscape, or inanimate objects (e.g., empty study desk, night city lights, quiet road). NO humans, NO girls, NO characters.",
         "lighting": "Lighting",
         "colorTone": "Color palette"
     },
-    "imagePrompt": "An English prompt combining sceneSetting, keySubject, lighting, and colorTone. No text, no human faces, cinematic digital painting",
+    "imagePrompt": "A pure landscape or still-life digital painting. Specify wide angle or environmental shot. EXCLUDE any human presence, no girls, no portraits.",
     "structuredData": {
         "musicGenre": "one_tag_from_list",
         "tempoBpm": "suggested BPM",
@@ -419,7 +419,23 @@ Format:
             
             res.json(parsed);
         } else {
-            res.status(500).json({ error: 'Only Gemini supported in this architecture' });
+            // Ollama (로컬)
+            const model = process.env.OLLAMA_MODEL || 'qwen3';
+            const response = await axios.post('http://127.0.0.1:11434/api/generate', {
+                model: model,
+                prompt: systemPrompt,
+                stream: false
+            });
+            let rawText = response.data.response || '';
+            // Remove think blocks if any
+            rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '');
+            // Extract json block
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            const cleanedText = jsonMatch ? jsonMatch[0] : rawText.replace(/^\s*```json\s*/im, '').replace(/```\s*$/im, '').trim();
+            
+            const parsed = JSON.parse(cleanedText);
+            parsed.primaryCategory = user.primaryCategory;
+            res.json(parsed);
         }
     } catch (err) {
         console.error('AI Analyze Error:', err.message);
@@ -438,10 +454,10 @@ app.post('/api/ai/image', authenticateToken, async (req, res) => {
         
         // 1차: 프롬프트 베이스라인 결합 (시각 스타일)
         const baselinePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}`;
-        const combinedPrompt = `${prompt}, ${baselinePrompt}, masterpiece, high quality, aesthetic, digital art`;
+        const combinedPrompt = `pure landscape scenery, background art, no people, wide environmental shot, ${prompt}, ${baselinePrompt}, masterpiece, high quality, aesthetic, digital art`;
         
         // 2차: 강제 네거티브 제약 조건 (URL 파라미터 결합)
-        const negativeConstraints = 'nsfw, nudity, suggestive, cleavage, blood, violence, weapon, grotesque, blurry, text, watermark, signature, face close-up, human faces';
+        const negativeConstraints = 'girl, woman, boy, man, human, person, people, face, portrait, close-up, character, anime face, nsfw, text, watermark, signature';
         
         const encodedPrompt = encodeURIComponent(combinedPrompt);
         const encodedNegative = encodeURIComponent(negativeConstraints);

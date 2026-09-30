@@ -373,7 +373,7 @@ User Story: "${user.story}"
 
 [Instructions]
 1. Sympathize with the user's current situation.
-2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity).
+2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity). **The poem and empathyMessage MUST BE written in Korean (한국어).**
 3. Recommend 1 music tag from this EXACT list: [pop, happy, rock, emotional, electronic, hiphop, jazz, indie, filmscore, classical, dark, dance, chillout, ambient, folk, metal, latin, rnb, reggae, punk, country, house, blues, energetic, sad, lofi, chill, relax, piano, upbeat, lounge].
 4. Consider energy: ${bpmGuidance}.
 

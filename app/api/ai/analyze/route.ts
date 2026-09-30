@@ -21,7 +21,7 @@ User Story: "${story}"
 
 [Instructions]
 1. Sympathize with the user's current situation.
-2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity).
+2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity). **The poem and empathyMessage MUST BE written in Korean (한국어).**
 3. Recommend 1 music tag from this EXACT list: [${VALID_JAMENDO_TAGS.join(', ')}].
 4. Consider energy: ${bpmGuidance}.
 

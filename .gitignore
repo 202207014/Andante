@@ -151,7 +151,9 @@ Thumbs.db
 public/uploads/*
 !public/uploads/.gitkeep
 
-# 기타 필요없는 스크립트
-test_jamendo.js
+# 기타 테스트 및 진단 스크립트 제외
+test_*.js
+list_models.js
 auto_shutdown.ps1
 delete_user.js
+

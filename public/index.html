@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
     <script src="lib/theme-mapping.js"></script>
-    <script src="components/healing.js"></script>
+    <script src="components/healing.js?v=2"></script>
 </head>
 <body class="theme-transition min-h-screen">
     
@@ -226,7 +226,34 @@
     </div>
 
     <div id="toast" class="hidden"></div>
-    <script src="app.js?v=3"></script>
+    
+    <!-- 힐링 전체화면 오버레이 -->
+    <div id="healing-fullscreen-overlay" class="hidden fixed inset-0 z-[9999] bg-black transition-opacity duration-1000 opacity-0 cursor-default flex items-center justify-center overflow-hidden select-none">
+    <!-- 1. 메인 힐링 이미지 (16:9 와이드) -->
+    <img id="healing-fullscreen-bg" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 transition-opacity duration-[2000ms]" src="" alt="">
+    <img id="healing-fullscreen-image" class="relative z-10 object-cover w-full h-full opacity-0 transition-opacity duration-[2000ms]" src="" alt="Healing Artwork">
+
+    <!-- 2. 은은한 비네팅 그라데이션 (자막 가독성 확보) -->
+    <div class="absolute inset-0 z-20 pointer-events-none bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
+
+    <!-- 3. 초경량 앰비언트 파티클 캔버스 -->
+    <canvas id="healing-particle-canvas" class="absolute inset-0 z-30 pointer-events-none w-full h-full"></canvas>
+
+    <!-- 4. 시(Poem) 자막 오버레이 -->
+    <div id="healing-subtitle-container" class="absolute bottom-16 inset-x-0 z-40 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+        <p id="healing-subtitle-text" class="text-white/90 text-lg md:text-xl font-light tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-1000 font-serif break-keep max-w-2xl">
+        </p>
+    </div>
+
+    <!-- 5. 닫기 버튼 -->
+    <div id="healing-fullscreen-controls" class="absolute top-6 right-6 z-50 transition-opacity duration-500">
+        <button id="close-healing-btn" class="px-4 py-2 bg-black/50 hover:bg-black/80 text-white/90 text-sm rounded-full backdrop-blur-md border border-white/20 transition-all duration-500">
+            ✕ 힐링 종료 (ESC)
+        </button>
+    </div>
+</div>
+
+    <script src="app.js?v=15"></script>
         <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);">
             <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-6 py-8 border-[3px] border-black rounded-2xl transition-all duration-300" style="background-color: #FFE68C; box-shadow: 5px 5px 0px 0px rgba(0,0,0,1); transform: scale(1);">
                 

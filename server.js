@@ -1,5 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+if (!process.env.GEMINI_API_KEY) {
+    console.error('FATAL: GEMINI_API_KEY가 .env에 설정되지 않았습니다.');
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 const cors = require('cors');
 const { getConnection } = require('./connect');
 const oracledb = require('oracledb');
@@ -242,7 +249,7 @@ app.get('/api/music', async (req, res) => {
         
         if (requestedId) {
             // ID로 직접 검색 (Freesound 대신 Jamendo 트랙 재생 등에서 사용됨)
-            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&id[]=${requestedId}`;
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&id=${requestedId}`;
             const response = await axios.get(url);
             const results = response.data.results;
             
@@ -265,26 +272,49 @@ app.get('/api/music', async (req, res) => {
         // Tag 기반 추천 로직
         const searchTag = requestedTag || 'chill';
         
-        async function attemptFetch(tag) {
-            const cacheKey = `jamendo_${tag}`;
+        async function attemptFetch(tag, bpmParam) {
+            let speedParam = '';
+            if (bpmParam) {
+                const bpm = parseInt(bpmParam);
+                if (!isNaN(bpm)) {
+                    if (bpm < 65) speedParam = 'verylow';
+                    else if (bpm <= 80) speedParam = 'low';
+                    else if (bpm <= 105) speedParam = 'medium';
+                    else if (bpm <= 130) speedParam = 'high';
+                    else speedParam = 'veryhigh';
+                }
+            }
+            
+            const cacheKey = `jamendo_${tag}_${speedParam}`;
             const now = Date.now();
             const cached = jamendoCache.get(cacheKey);
             if (cached && cached.expiresAt > now) {
                 return cached.data;
             }
 
-            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=30&tags=${encodeURIComponent(tag)}`;
-            const response = await axios.get(url);
-            const results = response.data.results;
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=30&tags=${encodeURIComponent(tag)}${speedParam ? '&speed=' + speedParam : ''}`;
             
-            if (results && results.length > 0) {
-                jamendoCache.set(cacheKey, { data: results, expiresAt: now + CACHE_TTL });
-                return results;
+            // Jamendo API randomly drops queries and returns 0 results. Retry up to 3 times.
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await axios.get(url);
+                    const results = response.data.results;
+                    
+                    if (results && results.length > 0) {
+                        jamendoCache.set(cacheKey, { data: results, expiresAt: now + CACHE_TTL });
+                        return results;
+                    }
+                    // if 0 results, wait 200ms and retry
+                    await new Promise(r => setTimeout(r, 200));
+                } catch(e) {
+                    // if network error, break and return null
+                    break;
+                }
             }
             return null;
         }
 
-        let results = await attemptFetch(searchTag);
+        let results = await attemptFetch(searchTag, req.query.bpm);
 
         // [Phase 2] 0 Results 시 상위 호환 태그로 1회 재시도 (Safe Fallback Chain)
         if (!results) {
@@ -298,7 +328,13 @@ app.get('/api/music', async (req, res) => {
         }
 
         // [Phase 2] HTTPS Protocol Normalization
-        const randomIdx = Math.floor(Math.random() * results.length);
+        const seedStr = req.query.seed;
+          let randomIdx = 0;
+          if (seedStr && !isNaN(parseInt(seedStr))) {
+              randomIdx = parseInt(seedStr) % results.length;
+          } else {
+              randomIdx = Math.floor(Math.random() * results.length);
+          }
         const track = results[randomIdx];
         const normalizedAudioUrl = track.audio.replace(/^http:\/\//i, 'https://');
 
@@ -341,102 +377,48 @@ app.get('/api/freesound', async (req, res) => {
     }
 });
 
-const EMOTION_VISUAL_STYLES = {
-    love_romance: { colorPalette: 'warm pastels, soft pink, peach', lighting: 'golden hour, soft glowing light', subject: 'blooming flowers, two intertwined objects', artStyle: 'watercolor, dreamy illustration' },
-    emotional_down: { colorPalette: 'slate blue, deep gray, muted indigo', lighting: 'dim, overcast, rainy atmosphere', subject: 'raindrops on window, lone silhouette', artStyle: 'oil painting, melancholic expressionism' },
-    mental_overload: { colorPalette: 'high contrast, neon red, deep black', lighting: 'flickering neon, harsh shadows', subject: 'tangled threads, fractured mirrors', artStyle: 'rough acrylic, chaotic abstract' },
-    depleted_tired: { colorPalette: 'faded sepia, pale beige, dusty rose', lighting: 'soft twilight, muted fading light', subject: 'empty chair, wilting leaf, calm sea', artStyle: 'minimalism, soft pastel' },
-    quiet_neutral: { colorPalette: 'monochrome, soft gray, pale blue', lighting: 'diffused morning light', subject: 'still water, single rock, empty room', artStyle: 'zen illustration, flat vector' },
-    energy_focus: { colorPalette: 'vibrant orange, electric blue, neon green', lighting: 'bright cinematic lighting, glowing aura', subject: 'geometric shapes, ascending stairs', artStyle: 'cyberpunk, sharp digital art' }
-};
-
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
     try {
         const { story, situationTag, primaryCategory, batteryLevel, weather = '맑음', userProfile } = req.body;
-        const provider = process.env.LLM_PROVIDER || 'gemini';
         
-        const user = {
-            gender: userProfile?.gender || '미지정',
-            batteryLevel: batteryLevel ?? 100,
-            primaryCategory: primaryCategory || 'quiet_neutral',
-            situationTag: situationTag || '미지정',
-            story: story || '내용 없음'
-        };
-
-        const bpmGuidance = user.batteryLevel <= 30 ? '60-75 BPM (Comforting)' : user.batteryLevel >= 70 ? '106-130 BPM (Dynamic Energy)' : '80-100 BPM (Moderate)';
-        
-        const inputPrompt = `에너지: ${user.batteryLevel}%, 상황: ${user.situationTag}\n일기: ${user.story}`;
+        const genderKor = userProfile?.gender || '남성';
+        const gender = genderKor === '여성' ? 'young woman' : 'young man';
+        const age = userProfile?.age || 24;
 
         const systemPrompt = `You are a therapeutic AI curator 'Andante'.
-User context: Gender=${user.gender}, Energy=${user.batteryLevel}%, Emotion Axis=${user.primaryCategory}, Trigger=${user.situationTag}. Weather=${weather}.
-User Story: "${user.story}"
+User Profile: ${age}-year-old ${genderKor} (${gender})
+Emotion Context: "${situationTag || '일상'}" (Battery: ${batteryLevel ?? 100}%)
+User Story: "${story || ''}"
 
-[Instructions]
-1. Sympathize with the user's current situation.
-2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity). **The poem and empathyMessage MUST BE written in Korean (한국어).**
-3. Recommend 1 music tag from this EXACT list: [pop, happy, rock, emotional, electronic, hiphop, jazz, indie, filmscore, classical, dark, dance, chillout, ambient, folk, metal, latin, rnb, reggae, punk, country, house, blues, energetic, sad, lofi, chill, relax, piano, upbeat, lounge].
-4. Consider energy: ${bpmGuidance}.
+[Crucial Image Direction: EXPANSIVE SCENERY & THERAPEUTIC LANDSCAPE]
+- NEVER focus on a person's body, back, or shoulders. The person must NOT dominate the frame.
+- Primary Subject: A vast, peaceful, breathtaking landscape or cozy architectural corner that gives an instant sense of breathing room and deep relaxation.
+  - Examples: A tranquil misty lake with mountain reflections, a golden sunset spilling across a vast calm ocean, a wide quiet city skyline bathed in twilight, a sunlit forest trail with soft sunbeams.
+- If a person is included: It must be an extremely tiny silhouette in the distant background (taking less than 5% of the frame) simply admiring the view.
+- Camera: Cinematic ultra-wide angle view, expansive vista, spacious composition, warm soothing color palette, soft golden hour or tranquil dawn light.
+- STRICT CONSTRAINTS: No close-ups, no large human figures, no gloomy or depressive vibes, no text.
 
-Return ONLY a valid JSON object. Do NOT include markdown backticks like \`\`\`json.
-Format:
+Return JSON only:
 {
-    "poem": {
-        "title": "Poem title",
-        "stanza1": "Stanza 1 content (empathy)",
-        "stanza2": "Stanza 2 content (healing)"
-    },
-    "visualDirection": {
-        "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
-        "keySubject": "MUST BE scenery, landscape, or inanimate objects (e.g., empty study desk, night city lights, quiet road). NO humans, NO girls, NO characters.",
-        "lighting": "Lighting",
-        "colorTone": "Color palette"
-    },
-    "imagePrompt": "A pure landscape or still-life digital painting. Specify wide angle or environmental shot. EXCLUDE any human presence, no girls, no portraits.",
-    "structuredData": {
-        "musicGenre": "one_tag_from_list",
-        "tempoBpm": "suggested BPM",
-        "aiMusicTags": ["same tag as musicGenre"]
-    },
-    "empathyMessage": "Short comforting message",
-    "weather": "${weather}",
-    "mood": "${user.primaryCategory}",
-    "theme": "Core healing theme"
+    "poem": { "title": "...", "stanza1": "...", "stanza2": "..." },
+    "imagePrompt": "Breathtaking ultra-wide panoramic landscape, serene calm lake reflecting a golden sunset, soft misty mountains in the distance, tiny distant silhouette of a ${gender} standing far away on the dock, expansive airy sky, comforting warm ambient glow, soothing aesthetic digital painting, no close-ups, no large human figures, no text",
+    "structuredData": { "musicGenre": "...", "tempoBpm": "..." },
+    "userGender": "${genderKor}"
 }`;
 
-        if (provider === 'gemini') {
-            const API_KEY = process.env.GEMINI_API_KEY;
-            if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'Gemini API 키 오류' });
-            
-            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
-                contents: [{ role: 'user', parts: [{ text: systemPrompt }] }]
-            });
-            const rawText = response.data.candidates[0].content.parts[0].text;
-            const cleanedText = rawText.replace(/^\s*```json\s*/im, '').replace(/```\s*$/im, '').trim();
-            const parsed = JSON.parse(cleanedText);
-            
-            // Inject primaryCategory for the next step (image generation)
-            parsed.primaryCategory = user.primaryCategory;
-            
-            res.json(parsed);
-        } else {
-            // Ollama (로컬)
-            const model = process.env.OLLAMA_MODEL || 'qwen3';
-            const response = await axios.post('http://127.0.0.1:11434/api/generate', {
-                model: model,
-                prompt: systemPrompt,
-                stream: false
-            });
-            let rawText = response.data.response || '';
-            // Remove think blocks if any
-            rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '');
-            // Extract json block
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            const cleanedText = jsonMatch ? jsonMatch[0] : rawText.replace(/^\s*```json\s*/im, '').replace(/```\s*$/im, '').trim();
-            
-            const parsed = JSON.parse(cleanedText);
-            parsed.primaryCategory = user.primaryCategory;
-            res.json(parsed);
-        }
+        const model = genAI.getGenerativeModel({
+            model: "gemini-3.8-flash",
+            generationConfig: {
+                temperature: 0.75,
+                responseMimeType: "application/json",
+            }
+        });
+
+        const result = await model.generateContent(systemPrompt);
+        const responseText = result.response.text();
+        const parsed = JSON.parse(responseText);
+
+        res.json(parsed);
     } catch (err) {
         console.error('AI Analyze Error:', err.message);
         res.status(500).json({ error: 'AI 분석 실패' });
@@ -444,34 +426,57 @@ Format:
 });
 
 
+
 app.post('/api/ai/image', authenticateToken, async (req, res) => {
     try {
-        const { prompt, primaryCategory } = req.body;
-        const API_KEY = process.env.HF_API_KEY;
-        if (!API_KEY || API_KEY.includes('여기에')) return res.status(500).json({ error: 'HF API 키 오류' });
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: '프롬프트가 필요합니다.' });
 
-        const style = EMOTION_VISUAL_STYLES[primaryCategory] || EMOTION_VISUAL_STYLES.quiet_neutral;
-        
-        // 1차: 프롬프트 베이스라인 결합 (시각 스타일)
-        const baselinePrompt = `${style.subject}, ${style.colorPalette}, ${style.lighting}, ${style.artStyle}`;
-        const combinedPrompt = `pure landscape scenery, background art, no people, wide environmental shot, ${prompt}, ${baselinePrompt}, masterpiece, high quality, aesthetic, digital art`;
-        
-        // 2차: 강제 네거티브 제약 조건 (URL 파라미터 결합)
-        const negativeConstraints = 'girl, woman, boy, man, human, person, people, face, portrait, close-up, character, anime face, nsfw, text, watermark, signature';
-        
-        const encodedPrompt = encodeURIComponent(combinedPrompt);
+        const sanitizedPrompt = `atmospheric scenery, environmental shot of ${prompt.trim()}, wide angle view, poetic ambiance, no front-facing portrait`;
+        const negativeConstraints = 'face close-up, front face, portrait, eyes nose mouth, headshot, anime girl face, looking at camera, selfie, nsfw, text, watermark, blurry';
+
+        const encodedPrompt = encodeURIComponent(sanitizedPrompt);
         const encodedNegative = encodeURIComponent(negativeConstraints);
         
-        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&negative=${encodedNegative}`;
-        
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        let response = null;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const randomSeed = Math.floor(Math.random() * 10000000);
+                let url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${randomSeed}&nologo=true`;
+                if (attempt === 1) {
+                    url += `&negative=${encodedNegative}`;
+                }
+                
+                response = await axios.get(url, { 
+                    responseType: 'arraybuffer',
+                    timeout: 20000 
+                });
+                
+                if (response && response.status === 200 && response.data && response.data.length > 0) {
+                    break;
+                }
+            } catch (err) {
+                lastError = err;
+                console.warn(`[AI Image] Attempt ${attempt} failed: ${err.message}`);
+                await new Promise(resolve => setTimeout(resolve, 600 * attempt));
+            }
+        }
+
+        if (!response || !response.data || response.data.length === 0) {
+            throw lastError || new Error('Image generation failed after 3 retries');
+        }
+
         const b64Data = Buffer.from(response.data).toString('base64');
         res.json({ image_base64: `data:image/jpeg;base64,${b64Data}` });
     } catch (err) {
         console.error('AI Image Error:', err.message);
-        res.status(500).json({ error: '이미지 생성 실패' });
+        res.status(500).json({ error: '이미지 생성 실패: ' + (err.message || '서버 오류') });
     }
 });
+
+
 
 
 

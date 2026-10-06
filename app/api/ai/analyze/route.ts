@@ -10,42 +10,32 @@ const VALID_JAMENDO_TAGS = [
 
 export async function POST(req: Request) {
     try {
-        const { story, situationTag, primaryCategory, batteryLevel, gender } = await req.json();
+        const body = await req.json();
+        const { story, situationTag, primaryCategory, batteryLevel, weather = '맑음', userProfile } = body;
 
-        // 1. Build prompt based on specifications
-        const bpmGuidance = batteryLevel <= 30 ? "60-75 BPM (Comforting)" : batteryLevel >= 70 ? "106-130 BPM (Dynamic Energy)" : "80-100 BPM (Moderate)";
-        
-        const systemPrompt = `You are a therapeutic AI curator. 
-User context: Gender=${gender}, Energy=${batteryLevel}%, Emotion Axis=${primaryCategory}, Trigger=${situationTag}.
-User Story: "${story}"
+        const genderKor = userProfile?.gender || '남성';
+        const gender = genderKor === '여성' ? 'young woman' : 'young man';
+        const age = userProfile?.age || 24;
 
-[Instructions]
-1. Sympathize with the user's current situation.
-2. Provide a 2-stanza poem (stanza1: empathy, stanza2: healing/positivity). **The poem and empathyMessage MUST BE written in Korean (한국어).**
-3. Recommend 1 music tag from this EXACT list: [${VALID_JAMENDO_TAGS.join(', ')}].
-4. Consider energy: ${bpmGuidance}.
+        const systemPrompt = `You are a therapeutic AI curator 'Andante'.
+User Profile: ${age}-year-old ${genderKor} (${gender})
+Emotion Context: "${situationTag || '일상'}" (Battery: ${batteryLevel ?? 100}%)
+User Story: "${story || ''}"
 
-Return ONLY a valid JSON object. Do NOT include markdown backticks like \`\`\`json.
-Format:
+[Crucial Image Direction: EXPANSIVE SCENERY & THERAPEUTIC LANDSCAPE]
+- NEVER focus on a person's body, back, or shoulders. The person must NOT dominate the frame.
+- Primary Subject: A vast, peaceful, breathtaking landscape or cozy architectural corner that gives an instant sense of breathing room and deep relaxation.
+  - Examples: A tranquil misty lake with mountain reflections, a golden sunset spilling across a vast calm ocean, a wide quiet city skyline bathed in twilight, a sunlit forest trail with soft sunbeams.
+- If a person is included: It must be an extremely tiny silhouette in the distant background (taking less than 5% of the frame) simply admiring the view.
+- Camera: Cinematic ultra-wide angle view, expansive vista, spacious composition, warm soothing color palette, soft golden hour or tranquil dawn light.
+- STRICT CONSTRAINTS: No close-ups, no large human figures, no gloomy or depressive vibes, no text.
+
+Return JSON only:
 {
-    "poem": {
-        "title": "Poem title",
-        "stanza1": "Stanza 1 content (empathy)",
-        "stanza2": "Stanza 2 content (healing)"
-    },
-    "visualDirection": {
-        "sceneSetting": "Specific physical space (NEVER use indoor room with window. e.g., midnight beach, rainy alley, dark library)",
-        "keySubject": "MUST BE scenery, landscape, or inanimate objects (e.g., empty study desk, night city lights, quiet road). NO humans, NO girls, NO characters.",
-        "lighting": "Lighting",
-        "colorTone": "Color palette"
-    },
-    "imagePrompt": "A pure landscape or still-life digital painting. Specify wide angle or environmental shot. EXCLUDE any human presence, no girls, no portraits.",
-    "structuredData": {
-        "musicGenre": "one_tag_from_list",
-        "tempoBpm": "suggested BPM"
-    },
-    "empathyMessage": "Short comforting message",
-    "theme": "Core healing theme"
+    "poem": { "title": "...", "stanza1": "...", "stanza2": "..." },
+    "imagePrompt": "Breathtaking ultra-wide panoramic landscape, serene calm lake reflecting a golden sunset, soft misty mountains in the distance, tiny distant silhouette of a ${gender} standing far away on the dock, expansive airy sky, comforting warm ambient glow, soothing aesthetic digital painting, no close-ups, no large human figures, no text",
+    "structuredData": { "musicGenre": "...", "tempoBpm": "..." },
+    "userGender": "${genderKor}"
 }`;
 
         // 2. Fetch from Gemini
@@ -77,7 +67,7 @@ Format:
         const encodedPrompt = encodeURIComponent(combinedPrompt);
         const encodedNegative = encodeURIComponent(negativeConstraints);
 
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&negative=${encodedNegative}`;
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&negative=${encodedNegative}`;
 
         return NextResponse.json({
             ...parsed,

@@ -1,3 +1,128 @@
+
+// Healing Mode Interactive Animations
+let healingSubtitleTimer = null;
+let healingAnimFrame = null;
+
+function startHealingAnimations(pageEl, analysisObj) {
+    // 1. Extract Poem
+    let poemLines = [];
+    if (analysisObj && analysisObj.poem) {
+        const p = analysisObj.poem;
+        const fullPoem = (p.stanza1 || '') + '\n' + (p.stanza2 || '');
+        poemLines = fullPoem.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    } else if (pageEl) {
+        const poemEl = pageEl.querySelector('.poem-content');
+        if (poemEl) {
+            poemLines = poemEl.innerText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+        }
+    }
+
+    // Subtitle Player
+    const subtitleEl = document.getElementById('healing-subtitle-text');
+    if (subtitleEl && poemLines.length > 0) {
+        let lineIdx = 0;
+        subtitleEl.textContent = poemLines[lineIdx];
+        subtitleEl.classList.remove('opacity-0');
+        
+        healingSubtitleTimer = setInterval(() => {
+            subtitleEl.classList.add('opacity-0'); // fade out
+            setTimeout(() => {
+                lineIdx = (lineIdx + 1) % poemLines.length;
+                subtitleEl.textContent = poemLines[lineIdx];
+                subtitleEl.classList.remove('opacity-0'); // fade in
+            }, 1000); // Wait 1s for fade out transition
+        }, 6000); // Change line every 6s
+    }
+
+    // 2. Ambient Particles
+    const canvas = document.getElementById('healing-particle-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const resizeCanvas = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    canvas._resizeHandler = resizeCanvas;
+
+    const particles = [];
+    const numParticles = 50;
+    for (let i = 0; i < numParticles; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 3 + 1.5,
+            speedX: (Math.random() - 0.5) * 0.3,
+            speedY: (Math.random() - 0.5) * 0.3 - 0.1,
+            opacity: Math.random() * 0.6 + 0.3
+        });
+    }
+
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.x += p.speedX;
+            p.y += p.speedY;
+            if (p.x < 0) p.x = canvas.width;
+            if (p.x > canvas.width) p.x = 0;
+            if (p.y < 0) p.y = canvas.height;
+            if (p.y > canvas.height) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+            ctx.fill();
+        });
+        healingAnimFrame = requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+}
+
+function stopHealingAnimations() {
+    if (healingSubtitleTimer) clearInterval(healingSubtitleTimer);
+    if (healingAnimFrame) cancelAnimationFrame(healingAnimFrame);
+    healingSubtitleTimer = null;
+    healingAnimFrame = null;
+    
+    const subtitleEl = document.getElementById('healing-subtitle-text');
+    if (subtitleEl) {
+        subtitleEl.classList.add('opacity-0');
+        subtitleEl.textContent = '';
+    }
+
+    const canvas = document.getElementById('healing-particle-canvas');
+    if (canvas && canvas._resizeHandler) {
+        window.removeEventListener('resize', canvas._resizeHandler);
+    }
+}
+
+
+
+window.GlobalAudio = {
+    activeAudios: new Set(),
+    create: function(url) {
+        const audio = new window.Audio(url);
+        this.activeAudios.add(audio);
+        return audio;
+    },
+    stopAll: function() {
+        this.activeAudios.forEach(audio => {
+            try { audio.pause(); audio.currentTime = 0; } catch(e) {}
+        });
+        
+        document.querySelectorAll('audio').forEach(audio => {
+            try { audio.pause(); audio.currentTime = 0;  } catch(e) {}
+        });
+    }
+};
+
+window.stopAllAudios = function() {
+    if (window.GlobalAudio) {
+        window.GlobalAudio.stopAll();
+    }
+};
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Initial Theme & Environment Setup
     const currentHour = new Date().getHours();
@@ -41,13 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // FreeSound BGM Logic
-    let bgmAudio = null;
+    
     let isBgmPlaying = false;
     let isBgmInitialized = false;
 
     function pauseBGM() {
-        if (bgmAudio && isBgmPlaying) {
-            bgmAudio.pause();
+        if (window.bgmAudio && isBgmPlaying) {
+            window.bgmAudio.pause();
             isBgmPlaying = false;
             const btn = document.getElementById('bgm-toggle-btn');
             if (btn) btn.innerHTML = `<span>🎵 BGM: OFF</span>`;
@@ -76,22 +201,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const track = data.results[randomIdx];
                 const previewUrl = track.previews['preview-hq-mp3'];
                 
-                bgmAudio = new Audio(previewUrl);
+                window.bgmAudio = window.GlobalAudio.create(previewUrl);
             } else {
                 // Final fallback if API completely fails or returns empty
-                bgmAudio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+                window.bgmAudio = window.GlobalAudio.create("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
             }
             
-            bgmAudio.loop = true;
-            bgmAudio.volume = 0.2;
+            window.bgmAudio.loop = true;
+            window.bgmAudio.volume = 0.2;
             renderBgmUI();
             
         } catch(e) {
             console.error("BGM Load Error:", e);
             // Render UI anyway with a fallback track on network error
-            bgmAudio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-            bgmAudio.loop = true;
-            bgmAudio.volume = 0.2;
+            window.bgmAudio = window.GlobalAudio.create("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+            window.bgmAudio.loop = true;
+            window.bgmAudio.volume = 0.2;
             renderBgmUI();
         }
     }
@@ -109,12 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.innerHTML = `<span>🎵 BGM: OFF</span>`;
         
         btn.onclick = () => {
-            if (!bgmAudio) return;
+            if (!window.bgmAudio) return;
             if (isBgmPlaying) {
-                bgmAudio.pause();
+                window.bgmAudio.pause();
                 btn.innerHTML = `<span>🎵 BGM: OFF</span>`;
             } else {
-                bgmAudio.play().catch(e => console.log("Autoplay blocked", e));
+                window.bgmAudio.play().catch(e => console.log("Autoplay blocked", e));
                 btn.innerHTML = `<span>🎵 BGM: ON</span>`;
             }
             isBgmPlaying = !isBgmPlaying;
@@ -124,8 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.addEventListener('click', function unlockAudio(e) {
             if (e.target.closest('#bgm-toggle-btn')) return; // let button handler do it
             
-            if (bgmAudio && !isBgmPlaying) {
-                bgmAudio.play().then(() => {
+            if (window.bgmAudio && !isBgmPlaying) {
+                window.bgmAudio.play().then(() => {
                     isBgmPlaying = true;
                     btn.innerHTML = `<span>🎵 BGM: ON</span>`;
                 }).catch(e => {});
@@ -137,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Jamendo API Logic
-    let jamendoAudio = null;
+    
     let jamendoTrackInfo = null;
     
     // 유효성이 검증된(항상 결과가 있는) Jamendo 태그 목록
@@ -158,13 +283,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'relax';
     }
 
-    async function loadJamendoTrack(tags) {
+    async function loadJamendoTrack(tags, bpm) {
+
         // [Crucial Fix] Ignore AI's generated tag which often mismatches the context (e.g., suggesting 'chillout' for a lover's argument).
         // Strictly use the curated selectedSafeTag which is perfectly mapped to the user's chosen situation.
         let tagQuery = selectedSafeTag;
+        let bpmQuery = '';
+        if (bpm) {
+            const bpmNum = parseInt(bpm.replace(/\D/g, ''));
+            if (!isNaN(bpmNum)) {
+                bpmQuery = `&bpm=${bpmNum}`;
+            }
+        }
         try {
             // [Phase 3] 클라이언트에서 직접 외부 도메인(api.jamendo.com)을 호출하지 않고, 내부 프록시(BFF) 라우트를 호출하여 애드블록 및 혼합 콘텐츠 에러 원천 차단
-            const res = await fetch(`/api/music?tag=${encodeURIComponent(tagQuery)}`);
+            const res = await fetch(`/api/music?tag=${encodeURIComponent(tagQuery)}${bpmQuery}`);
             
             if (!res.ok) {
                 throw new Error(`BFF Request Failed: ${res.status}`);
@@ -173,9 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.success && data.track) {
                 jamendoTrackInfo = data.track;
-                jamendoAudio = new Audio(jamendoTrackInfo.audio);
-                jamendoAudio.volume = 0.8;
-                jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
+                window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
+                window.jamendoAudio.volume = 0.8;
+                window.jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
             } else {
                 throw new Error("Invalid response format from BFF");
             }
@@ -228,8 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 audio: fallback.audio,
                 image: ""
             };
-            jamendoAudio = new Audio(jamendoTrackInfo.audio);
-            jamendoAudio.volume = 0.5;
+            window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
+            window.jamendoAudio.volume = 0.5;
         }
     }
 
@@ -628,13 +761,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stickerBtn = musicSlot.querySelector('#sticker-play-btn');
                 if (stickerBtn) {
                     stickerBtn.onclick = () => {
-                        if (jamendoAudio) {
+                        if (window.jamendoAudio) {
                             if (isPlayingMusic) {
-                                jamendoAudio.pause();
+                                window.jamendoAudio.pause();
                             }
                             else {
                                 pauseBGM();
-                                jamendoAudio.play();
+                                window.jamendoAudio.play();
                             }
                         }
                         isPlayingMusic = !isPlayingMusic;
@@ -672,8 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (finalSlot && generatedImageUrl) {
                 finalSlot.innerHTML = `
                     <div style="display: flex; gap: 1.5rem; margin-top: 3rem; flex-wrap: wrap; justify-content: center;">
+                        
                         <button id="final-save-btn" class="active-press hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: var(--pastel-pink, #fbcfe8); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
                             💾 일기장 저장
+                        </button>
+                        <button id="start-healing-btn" class="active-press start-healing-btn hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: #6EE7B7; box-shadow: 3px 3px 0px 0px rgba(0,0,0,1); font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
+                            🌿 힐링 시작
                         </button>
                         <button id="final-share-btn" class="active-press hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: var(--pastel-yellow, #fef08a); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
                             🌐 갤러리 공유
@@ -703,8 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
         generatedImageUrl = null;
         const moodInput = document.getElementById('mood-input');
         if (moodInput) moodInput.value = '';
-        if (jamendoAudio) {
-            jamendoAudio.pause();
+        if (window.jamendoAudio) {
+            window.jamendoAudio.pause();
         }
         isPlayingMusic = false;
         
@@ -790,9 +927,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         weather: currentWeatherVal,
                         location: currentLocationVal,
                         userProfile: {
-                            mbti: selectedMbti,
-                            birthDate: authBirthDate || '2000-01-01',
-                            gender: sessionStorage.getItem('authGender') || '미지정'
+                            gender: sessionStorage.getItem('authGender') || '남성',
+                            age: sessionStorage.getItem('authAge') || 24
                         }
                     })
                 });
@@ -805,12 +941,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Fetch Jamendo Track
                 jamendoTrackInfo = null;
-                if (jamendoAudio) {
-                    jamendoAudio.pause();
-                    jamendoAudio = null;
+                if (window.jamendoAudio) {
+                    window.jamendoAudio.pause();
+                    window.jamendoAudio = null;
                 }
                 const tags = data.structuredData?.aiMusicTags || [];
-                await loadJamendoTrack(tags);
+                const bpm = data.structuredData?.tempoBpm || '';
+                await loadJamendoTrack(tags, bpm);
 
                 // Dynamic Background Color Transition using selectedThemeColor
                 if (selectedThemeColor) {
@@ -874,8 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ 
-                    prompt: promptStr,
+                body: JSON.stringify({ prompt: promptStr, userGender: currentAnalysis.userGender || sessionStorage.getItem('authGender') || '남성',
                     primaryCategory: currentAnalysis.primaryCategory 
                 })
             });
@@ -895,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Save to Diary (/api/diaries)
     async function saveToDiary() {
+    window.stopAllAudios();
         if (!currentAnalysis || !generatedImageUrl) return;
         if (!token) return location.href = '/login.html';
         if (isSubmitting) return;
@@ -1020,6 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.flipDiary = (dir) => {
+        window.stopAllAudios();
         if (!window.cachedDiaries) return;
         window.currentDiaryIndex += dir;
         renderDiaryBook();
@@ -1091,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!track) {
                 const safeTag = mapToValidJamendoTag(musicMood);
                 displayTag = safeTag;
-                const jamendoRes = await fetch(`/api/music?tag=${safeTag}`);
+                const jamendoRes = await fetch(`/api/music?tag=${safeTag}&seed=${d.ID}`);
                 const jamendoData = await jamendoRes.json();
                 if (jamendoData.success && jamendoData.track) {
                     track = jamendoData.track;
@@ -1224,6 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         <div class="page-footer right-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div style="display: flex; gap: 15px; align-items: center;">
+                                <button class="start-healing-btn" style="color: #10b981; font-weight: bold; font-size: 12px; cursor: pointer; background: none; border: none; padding: 0; transition: color 0.2s;" onmouseover="this.style.color='#059669'" onmouseout="this.style.color='#10b981'">🌿 힐링 시작</button>
                                 <button onclick="window.deleteDiary(${d.ID})" class="delete-btn">🗑 삭제</button>
                                 <button onclick="window.shareDiary(${idx})" style="color: #60a5fa; font-weight: bold; font-size: 12px; cursor: pointer; background: none; border: none; padding: 0; transition: color 0.2s;" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='#60a5fa'">🌐 공유</button>
                             </div>
@@ -1242,6 +1381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closePostsBtn = document.getElementById('close-posts-btn');
     if (closePostsBtn) {
         closePostsBtn.onclick = () => {
+            window.stopAllAudios();
             const diarySection = document.getElementById('diary-section');
             const mainContent = document.getElementById('main-content');
             
@@ -1261,4 +1401,163 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+});
+
+
+// 🌿 힐링 시작 전체화면 (Event Delegation & Auto-Inject)
+document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.start-healing-btn');
+    if (!btn) return;
+
+    // 1. DOM 역추적하여 이미지 소스 추출
+    const page = btn.closest('.book-wrapper');
+    let imgSrc = '';
+    if (page) {
+        // Find the image in the current diary view
+        const img = page.querySelector('img.diary-image') || document.querySelector('.diary-image');
+        if (img) imgSrc = img.src;
+    }
+    
+    // 만약 이미지를 못 찾았다면, 페이지에 있는 아무 캔버스 이미지나 사용
+    if (!imgSrc) {
+        const fallbackImg = document.querySelector('img[src^="data:image"]');
+        if (fallbackImg) imgSrc = fallbackImg.src;
+    }
+
+    if (!imgSrc) {
+        showToast('힐링 캔버스 이미지를 찾을 수 없습니다.');
+        return;
+    }
+
+    // 2. 오버레이 자동 생성 방어 (DOM에 없으면 주입)
+    let overlay = document.getElementById('healing-fullscreen-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'healing-fullscreen-overlay';
+        overlay.className = 'hidden fixed inset-0 z-[9999] bg-black transition-opacity duration-1000 opacity-0 cursor-default flex items-center justify-center';
+        overlay.innerHTML = `
+            <!-- 1. 메인 힐링 이미지 (16:9 와이드) -->
+            <img id="healing-fullscreen-bg" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 transition-opacity duration-[2000ms]" src="" alt="">
+            <img id="healing-fullscreen-image" class="relative z-10 object-cover w-full h-full opacity-0 transition-opacity duration-[2000ms]" src="" alt="Healing Artwork">
+
+            <!-- 2. 은은한 비네팅 그라데이션 (자막 가독성 확보) -->
+            <div class="absolute inset-0 z-20 pointer-events-none bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
+
+            <!-- 3. 초경량 앰비언트 파티클 캔버스 -->
+            <canvas id="healing-particle-canvas" class="absolute inset-0 z-30 pointer-events-none w-full h-full"></canvas>
+
+            <!-- 4. 시(Poem) 자막 오버레이 -->
+            <div id="healing-subtitle-container" class="absolute bottom-16 inset-x-0 z-40 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+                <p id="healing-subtitle-text" class="text-white/90 text-lg md:text-xl font-light tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-1000 font-serif break-keep max-w-2xl">
+                </p>
+            </div>
+
+            <!-- 5. 닫기 버튼 -->
+            <div id="healing-fullscreen-controls" class="absolute top-6 right-6 z-50 transition-opacity duration-500">
+                <button id="close-healing-btn" class="px-4 py-2 bg-black/50 hover:bg-black/80 text-white/90 text-sm rounded-full backdrop-blur-md border border-white/20 transition-all duration-500">
+                    ✕ 힐링 종료 (ESC)
+                </button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    const image = document.getElementById('healing-fullscreen-image');
+    const bgImage = document.getElementById('healing-fullscreen-bg');
+    if (image) image.src = imgSrc;
+    if (bgImage) bgImage.src = imgSrc;
+
+    window.stopAllAudios();
+
+    // 3. 오디오 재생 (Autoplay 방어)
+    const audioPlayer = document.querySelector('#diary-music-player-container audio') || document.querySelector('audio');
+    if (audioPlayer) {
+        // Diary viewer Mode (DOM audio)
+        audioPlayer.currentTime = 0;
+        try {
+            await audioPlayer.play();
+        } catch (err) {
+            console.log('Audio autoplay prevented by browser', err);
+        }
+    } else if (window.jamendoAudio) {
+        // Wizard Step 3 Mode (In-memory audio)
+        window.jamendoAudio.currentTime = 0;
+        try {
+            await window.jamendoAudio.play();
+            // Optional: update play button state if user closed healing mode later
+            // though healing mode overlays the whole screen, music keeps playing underneath
+            // We can just set isPlayingMusic = true so it syncs with UI
+            if (typeof isPlayingMusic !== 'undefined') isPlayingMusic = true;
+            if (typeof updateWizardView === 'function') updateWizardView();
+        } catch (err) {
+            console.log('Audio autoplay prevented by browser', err);
+        }
+    }
+
+    // 4. 전체화면 전환 및 애니메이션
+    overlay.classList.remove('hidden');
+    setTimeout(() => {
+        overlay.classList.remove('opacity-0');
+        if (image) image.classList.remove('opacity-0');
+        if (bgImage) bgImage.classList.remove('opacity-0');
+    }, 50);
+    startHealingAnimations(page, typeof currentAnalysis !== "undefined" ? currentAnalysis : null);
+
+
+    const docEl = document.documentElement;
+    try {
+        if (docEl.requestFullscreen) {
+            await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+            await docEl.webkitRequestFullscreen();
+        }
+    } catch(err) {
+        console.log('Fullscreen failed:', err);
+    }
+
+    // 5. 마우스 멈춤 감지 및 커서/컨트롤 숨김
+    let hideCursorTimeout;
+    const hideControls = () => {
+        overlay.classList.add('cursor-none');
+        document.getElementById('healing-fullscreen-controls')?.classList.add('opacity-0');
+    };
+
+    const resetCursorTimer = () => {
+        overlay.classList.remove('cursor-none');
+        document.getElementById('healing-fullscreen-controls')?.classList.remove('opacity-0');
+        clearTimeout(hideCursorTimeout);
+        hideCursorTimeout = setTimeout(hideControls, 2500);
+    };
+
+    overlay.addEventListener('mousemove', resetCursorTimer);
+    resetCursorTimer();
+
+    // 6. 종료 핸들링
+    const exitHealing = () => {
+        overlay.classList.add('opacity-0');
+        image.classList.add('opacity-0');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            image.src = ""; // 메모리 확보
+            stopHealingAnimations(); // [New]
+        }, 1000);
+        
+        clearTimeout(hideCursorTimeout);
+        overlay.removeEventListener('mousemove', resetCursorTimer);
+        
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(err => console.log(err));
+        }
+    };
+
+    document.getElementById('close-healing-btn').onclick = exitHealing;
+
+    const onFullscreenChange = () => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            exitHealing();
+        }
+    };
+    
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 });

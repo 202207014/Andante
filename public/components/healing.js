@@ -6,25 +6,35 @@ const AndanteComponents = {
    */
   renderPoemCard: function ({ title = "마음의 안단테", stanza1 = "", stanza2 = "" }) {
     return `
-      <div class="brutal-card theme-transition text-foreground mb-6">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <span style="padding:4px 12px; font-size:12px; font-weight:bold; border-radius:999px; border:2px solid #000; background:var(--pastel-pink); box-shadow:2px 2px 0px #000; color:#000;">
-            📜 AI 힐링 시 (Poem)
-          </span>
-          <span style="font-size:12px; color:#555; font-family:monospace;">Andante Verse</span>
-        </div>
-        <h3 style="font-size:18px; font-weight:bold; text-align:center; margin-bottom:16px; color:#000;">
-          ${title}
-        </h3>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
-          <div style="border-radius:16px; border:2px solid #000; background:rgba(247, 240, 190, 0.7); padding:14px; box-shadow:2px 2px 0px #000;">
-            <div style="font-size:11px; font-weight:bold; color:rgba(0,0,0,0.6); margin-bottom:6px;">[ 1절 ]</div>
-            <p style="white-space:pre-line; font-size:14px; line-height:1.6; color:#111; font-weight:500;">${stanza1}</p>
-          </div>
-          <div style="border-radius:16px; border:2px solid #000; background:rgba(235, 215, 255, 0.7); padding:14px; box-shadow:2px 2px 0px #000;">
-            <div style="font-size:11px; font-weight:bold; color:rgba(0,0,0,0.6); margin-bottom:6px;">[ 2절 ]</div>
-            <p style="white-space:pre-line; font-size:14px; line-height:1.6; color:#111; font-weight:500;">${stanza2}</p>
-          </div>
+      <div class="theme-transition mb-6" style="margin: 0 auto; max-width: 600px; background-color: #fdfbf7; border-radius: 24px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; text-align: center; position: relative; overflow: hidden;">
+        <!-- 은은한 쿼트 장식 -->
+        <div style="position: absolute; top: -10px; left: 24px; font-size: 80px; color: #e7e5e4; opacity: 0.5; font-family: serif; line-height: 1; pointer-events: none;">"</div>
+        
+        <div style="position: relative; z-index: 1;">
+            <!-- 메타 뱃지 (옵션) -->
+            <div style="margin-bottom: 24px;">
+              <span style="padding: 4px 12px; font-size: 11px; font-weight: bold; border-radius: 999px; background: rgba(0,0,0,0.05); color: #78716c; letter-spacing: 0.5px;">
+                AI 힐링 시 (Poem)
+              </span>
+            </div>
+            
+            <!-- 시 제목 -->
+            <h3 style="font-size: 22px; font-weight: 800; color: #292524; margin-bottom: 32px; letter-spacing: 0.05em; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+              ${title}
+            </h3>
+            
+            <!-- 1절 -->
+            <p style="white-space: pre-line; font-size: 16px; line-height: 2.0; color: #44403c; font-weight: 500; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+              ${stanza1}
+            </p>
+            
+            <!-- 구분 여백 -->
+            <div style="width: 40px; height: 1px; background-color: #d6d3d1; margin: 32px auto;"></div>
+            
+            <!-- 2절 -->
+            <p style="white-space: pre-line; font-size: 16px; line-height: 2.0; color: #44403c; font-weight: 500; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+              ${stanza2}
+            </p>
         </div>
       </div>
     `;

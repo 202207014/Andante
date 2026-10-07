@@ -19,12 +19,12 @@ const AndanteComponents = {
             </div>
             
             <!-- 시 제목 -->
-            <h3 style="font-size: 22px; font-weight: 800; color: #292524; margin-bottom: 32px; letter-spacing: 0.05em; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+            <h3 style="font-size: 26px; font-weight: 700; color: #292524; margin-bottom: 32px; letter-spacing: 0.03em; font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive; word-break: keep-all;">
               ${title}
             </h3>
             
             <!-- 1절 -->
-            <p style="white-space: pre-line; font-size: 16px; line-height: 2.0; color: #44403c; font-weight: 500; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+            <p class="poem-content" style="white-space: pre-line; font-size: 20px; line-height: 2.2; color: #44403c; font-weight: 400; font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive; word-break: keep-all; letter-spacing: 0.01em;">
               ${stanza1}
             </p>
             
@@ -32,7 +32,7 @@ const AndanteComponents = {
             <div style="width: 40px; height: 1px; background-color: #d6d3d1; margin: 32px auto;"></div>
             
             <!-- 2절 -->
-            <p style="white-space: pre-line; font-size: 16px; line-height: 2.0; color: #44403c; font-weight: 500; font-family: 'KoPub Batang', 'Nanum Myeongjo', 'Batang', serif; word-break: keep-all;">
+            <p class="poem-content" style="white-space: pre-line; font-size: 20px; line-height: 2.2; color: #44403c; font-weight: 400; font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive; word-break: keep-all; letter-spacing: 0.01em;">
               ${stanza2}
             </p>
         </div>

@@ -1,3 +1,16 @@
+/* 온글잎 이서윤체 웹폰트 */
+@font-face {
+    font-family: 'Ownglyph_LeeSeoyun';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2405-2@1.0/Ownglyph_LeeSeoyun.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+.font-poem, .font-leeseoyun {
+    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive !important;
+}
+
 :root {
     --primary: #8a2be2;
     --primary-hover: #9b4dca;
@@ -257,23 +270,27 @@ body {
     z-index: 1;
 }
 .poem-title {
-    font-size: 24px;
-    font-weight: 900;
+    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive;
+    font-size: 28px;
+    font-weight: 700;
     color: #1e293b;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     z-index: 2;
     word-break: keep-all;
+    letter-spacing: 0.02em;
 }
 .poem-content {
-    font-size: 15px;
-    line-height: 2;
-    color: #475569;
-    font-weight: 500;
+    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive;
+    font-size: 19px;
+    line-height: 2.2;
+    color: #334155;
+    font-weight: 400;
     white-space: pre-line;
-    max-width: 350px;
+    max-width: 380px;
     margin: 0 auto;
     z-index: 2;
     word-break: keep-all;
+    letter-spacing: 0.01em;
 }
 
 /* Page Footers */

@@ -432,47 +432,35 @@ app.post('/api/ai/image', authenticateToken, async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: '프롬프트가 필요합니다.' });
 
-        const sanitizedPrompt = `atmospheric scenery, environmental shot of ${prompt.trim()}, wide angle view, poetic ambiance, no front-facing portrait`;
-        const negativeConstraints = 'face close-up, front face, portrait, eyes nose mouth, headshot, anime girl face, looking at camera, selfie, nsfw, text, watermark, blurry';
+        const key = process.env.GEMINI_API_KEY;
+        if (!key) return res.status(500).json({ error: 'GEMINI_API_KEY가 설정되지 않았습니다.' });
 
-        const encodedPrompt = encodeURIComponent(sanitizedPrompt);
-        const encodedNegative = encodeURIComponent(negativeConstraints);
-        
-        let response = null;
-        let lastError = null;
+        // 풍경 및 감성 치유 분위기 보강
+        const sanitizedPrompt = `Breathtaking ultra-wide panoramic landscape, atmospheric environmental view, ${prompt.trim()}, warm soothing color palette, comforting ambient glow, soft peaceful lighting, fine art digital painting, no close-ups, no large human figures, no front-facing portrait, no text, no watermark`;
 
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                const randomSeed = Math.floor(Math.random() * 10000000);
-                let url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1280&height=720&seed=${randomSeed}&nologo=true`;
-                if (attempt === 1) {
-                    url += `&negative=${encodedNegative}`;
-                }
-                
-                response = await axios.get(url, { 
-                    responseType: 'arraybuffer',
-                    timeout: 20000 
-                });
-                
-                if (response && response.status === 200 && response.data && response.data.length > 0) {
-                    break;
-                }
-            } catch (err) {
-                lastError = err;
-                console.warn(`[AI Image] Attempt ${attempt} failed: ${err.message}`);
-                await new Promise(resolve => setTimeout(resolve, 600 * attempt));
-            }
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`;
+
+        const response = await axios.post(url, {
+            contents: [{
+                parts: [{ text: sanitizedPrompt }]
+            }]
+        }, { timeout: 35000 });
+
+        const candidate = response.data?.candidates?.[0];
+        const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
+
+        if (!imagePart || !imagePart.inlineData?.data) {
+            console.error('Gemini image generation response without image:', JSON.stringify(response.data));
+            throw new Error('이미지 데이터가 생성되지 않았습니다.');
         }
 
-        if (!response || !response.data || response.data.length === 0) {
-            throw lastError || new Error('Image generation failed after 3 retries');
-        }
+        const mimeType = imagePart.inlineData.mimeType || 'image/png';
+        const base64Data = imagePart.inlineData.data;
 
-        const b64Data = Buffer.from(response.data).toString('base64');
-        res.json({ image_base64: `data:image/jpeg;base64,${b64Data}` });
+        res.json({ image_base64: `data:${mimeType};base64,${base64Data}` });
     } catch (err) {
-        console.error('AI Image Error:', err.message);
-        res.status(500).json({ error: '이미지 생성 실패: ' + (err.message || '서버 오류') });
+        console.error('AI Image Error (Gemini):', err.response?.data || err.message);
+        res.status(500).json({ error: '이미지 생성 실패: ' + (err.response?.data?.error?.message || err.message) });
     }
 });
 

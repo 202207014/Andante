@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Andante | AI 감성 힐링 캔버스</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
     <script src="lib/theme-mapping.js"></script>
-    <script src="components/healing.js?v=2"></script>
+    <script src="components/healing.js?v=4"></script>
 </head>
 <body class="theme-transition min-h-screen">
     
@@ -241,7 +241,7 @@
 
     <!-- 4. 시(Poem) 자막 오버레이 -->
     <div id="healing-subtitle-container" class="absolute bottom-16 inset-x-0 z-40 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
-        <p id="healing-subtitle-text" class="text-white/90 text-lg md:text-xl font-light tracking-widest drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-1000 font-serif break-keep max-w-2xl">
+        <p id="healing-subtitle-text" class="text-white/95 text-xl md:text-2xl font-normal drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-1000 font-leeseoyun break-keep max-w-2xl">
         </p>
     </div>
 
@@ -253,7 +253,7 @@
     </div>
 </div>
 
-    <script src="app.js?v=15"></script>
+    <script src="app.js?v=18"></script>
         <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);">
             <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-6 py-8 border-[3px] border-black rounded-2xl transition-all duration-300" style="background-color: #FFE68C; box-shadow: 5px 5px 0px 0px rgba(0,0,0,1); transform: scale(1);">
                 

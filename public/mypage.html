@@ -8,23 +8,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
 </head>
-<body class="bg-gray-50 text-slate-800">
-    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
-            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
-                Andante
-            </h1>
+<body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
+    <!-- Ambient Blobs -->
+    <div id="blob-bg" class="blob-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Editorial Header -->
+    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
+        <div class="flex items-center gap-6">
+            <button onclick="location.href='/'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+                홈으로
+            </button>
+            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+                공유 갤러리
+            </button>
         </div>
-        <div class="header-nav flex items-center gap-2">
-            <button onclick="location.href='/'" class="icon-btn brutal-btn bg-white text-black font-bold">홈으로</button>
-            <button onclick="location.href='/board.html'" class="icon-btn brutal-btn bg-mint text-black font-bold">공유 게시판</button>
-            <button id="logout-btn" class="icon-btn brutal-btn bg-red text-black font-bold">로그아웃</button>
+
+        <div class="text-center cursor-pointer group" onclick="location.href='/'">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+                ANDANTE
+            </h1>
+            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
+                a piece of comfort
+            </p>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold">
+                로그아웃
+            </button>
         </div>
     </header>
 
-    <div class="container" style="max-width: 600px; margin: 4rem auto; padding: 0 20px;">
-        <div class="brutal-card bg-white p-8">
-            <h2 class="text-2xl font-black mb-6 text-center">내 정보 수정</h2>
+    <div class="container max-w-lg mx-auto px-4 py-8 relative-z">
+        <div class="editorial-card p-8 md:p-10" style="border: 1px solid #E2DED9; box-shadow: 0 20px 45px -10px rgba(28, 25, 23, 0.08);">
+            <div class="text-center mb-8">
+                <span class="font-editorial-sub text-xs text-stone-600 tracking-[0.2em] uppercase font-bold">Profile Settings</span>
+                <h2 class="font-editorial-serif text-2xl md:text-3xl font-normal text-stone-900 mt-1">내 정보 수정</h2>
+            </div>
             
             <div class="input-group mb-4">
                 <label class="block text-sm font-bold mb-2">아이디</label>

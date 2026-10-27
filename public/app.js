@@ -154,9 +154,10 @@ window.stopAllAudios = function() {
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Initial Theme & Environment Setup
     const currentHour = new Date().getHours();
-    const initialTheme = typeof resolveThemeByEnv === 'function' ? resolveThemeByEnv(currentHour, 'Sunny') : { background: 'oklch(0.93 0.08 155)', concept: '느리게 흐르는 민트빛 안단테' };
+    const initialTheme = typeof resolveThemeByEnv === 'function' ? resolveThemeByEnv(currentHour, 'Sunny') : { background: 'linear-gradient(135deg, #F4F8F4 0%, #E8F2E8 50%, #DEF0DF 100%)', concept: '느리게 흐르는 민트빛 안단테' };
     
-    document.body.style.backgroundColor = initialTheme.background;
+    document.body.classList.remove('bg-[#FAF8F5]');
+    document.body.style.background = initialTheme.background;
     const conceptEl = document.getElementById('theme-concept-text');
     if (conceptEl) conceptEl.textContent = initialTheme.concept;
 
@@ -185,8 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (weatherBadge) weatherBadge.innerHTML = emoji;
         
         if (theme) {
-            document.body.className = document.body.className.replace(/\bbg-\w+\b/g, '');
-            document.body.style.backgroundColor = theme.background;
+            document.body.className = document.body.className.replace(/\bbg-\w+\b/g, '').replace('bg-[#FAF8F5]', '');
+            document.body.style.background = theme.background;
             if (conceptEl) conceptEl.textContent = theme.concept;
         }
 
@@ -311,6 +312,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'relax';
     }
 
+    function attachAudioProgressSync(audio) {
+        if (!audio) return;
+        audio.ontimeupdate = () => {
+            const progressBar = document.getElementById('player-progress-bar');
+            const curTime = document.getElementById('player-current-time');
+            const totalTime = document.getElementById('player-total-time');
+            if (progressBar && audio.duration) {
+                const pct = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = `${pct}%`;
+            }
+            if (curTime) {
+                const m = Math.floor(audio.currentTime / 60);
+                const s = Math.floor(audio.currentTime % 60);
+                curTime.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+            if (totalTime && audio.duration) {
+                const m = Math.floor(audio.duration / 60);
+                const s = Math.floor(audio.duration % 60);
+                totalTime.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+        };
+    }
+
     async function loadJamendoTrack(tags, bpm) {
 
         // [Crucial Fix] Ignore AI's generated tag which often mismatches the context (e.g., suggesting 'chillout' for a lover's argument).
@@ -336,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 jamendoTrackInfo = data.track;
                 window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
                 window.jamendoAudio.volume = 0.8;
+                attachAudioProgressSync(window.jamendoAudio);
                 window.jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
             } else {
                 throw new Error("Invalid response format from BFF");
@@ -427,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auth State Check & Auto Populate
     const token = sessionStorage.getItem('authToken');
     if (!token) {
-        window.location.href = '/login.html';
+        window.location.replace('/login.html');
         return;
     }
     const authName = sessionStorage.getItem('authName') || sessionStorage.getItem('authUsername');
@@ -455,15 +480,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (diaryBtn) diaryBtn.classList.remove('hidden');
         if (mypageBtn) mypageBtn.classList.remove('hidden');
     } else {
+        if (userInfoEl) userInfoEl.textContent = '';
         if (loginNavBtn) {
+            loginNavBtn.classList.remove('hidden');
             loginNavBtn.onclick = () => location.href = '/login.html';
         }
-        
-        // 메인 화면(/ 또는 /index.html) 접속 시 로그인이 안 되어 있으면 로그인 화면으로 강제 이동
-        const path = window.location.pathname;
-        if (path === '/' || path === '/index.html') {
-            window.location.replace('/login.html');
-        }
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (diaryBtn) diaryBtn.classList.add('hidden');
+        if (mypageBtn) mypageBtn.classList.add('hidden');
     }
 
     if (logoutBtn) {
@@ -476,98 +500,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const HEALING_MOOD_DATA = [
       {
         id: "LOVE",
-        title: "설렘 & 사랑 ❤️",
-        subtitle: "새로운 시작, 몽글몽글한 애정, 또는 짝사랑의 열병",
-        headerColor: "#FFD1DC",
+        title: "설렘 & 사랑 💖",
+        subtitle: "새로운 시작, 몽글몽글한 애정, 또는 짝사랑의 떨림",
+        headerColor: "#FFCCD5", // 달콤한 딸기우유 핑크
+        borderColor: "#FFA3B1",
         subSituations: [
-          { id: "love_1", label: "답장 기다리며 애가 탐", jamendoSafeTag: "indie", themeColor: "#FFE4E1" },
-          { id: "love_2", label: "좋아하는 사람 생각에 밤잠 설침", jamendoSafeTag: "indie", themeColor: "#FFF0F5" },
-          { id: "love_3", label: "마주친 순간 멍해짐", jamendoSafeTag: "happy", themeColor: "#FADADD" },
-          { id: "love_4", label: "오래된 연인과의 편안한 데이트", jamendoSafeTag: "folk", themeColor: "#F4C2C2" },
-          { id: "love_5", label: "혼자 의미 부여하고 착각할까 겁남", jamendoSafeTag: "indie", themeColor: "#FCE4EC" },
-          { id: "love_6", label: "온종일 SNS 염탐하며 서성임", jamendoSafeTag: "lofi", themeColor: "#F8BBD0" },
-          { id: "love_7", label: "처음으로 손잡은 순간의 두근거림", jamendoSafeTag: "happy", themeColor: "#F48FB1" },
-          { id: "love_8", label: "별것 아닌 일상도 공유하고 싶음", jamendoSafeTag: "folk", themeColor: "#F06292" }
+          { id: "love_1", label: "답장 기다리며 애가 탐", jamendoSafeTag: "indie", themeColor: "#FBF2F2" },
+          { id: "love_2", label: "좋아하는 사람 생각에 밤잠 설침", jamendoSafeTag: "indie", themeColor: "#FCF5F7" },
+          { id: "love_3", label: "마주친 순간 멍해짐", jamendoSafeTag: "happy", themeColor: "#FAF0F2" },
+          { id: "love_4", label: "오래된 연인과의 편안한 데이트", jamendoSafeTag: "folk", themeColor: "#F7ECEC" },
+          { id: "love_5", label: "혼자 의미 부여하고 착각할까 겁남", jamendoSafeTag: "indie", themeColor: "#FAF2F5" },
+          { id: "love_6", label: "온종일 SNS 염탐하며 서성임", jamendoSafeTag: "lofi", themeColor: "#F7EEF2" },
+          { id: "love_7", label: "처음으로 손잡은 순간의 두근거림", jamendoSafeTag: "happy", themeColor: "#F9EDF1" },
+          { id: "love_8", label: "별것 아닌 일상도 공유하고 싶음", jamendoSafeTag: "folk", themeColor: "#F5EBF0" }
         ]
       },
       {
         id: "DOWN",
-        title: "감정적 가라앉음 & 이별 🌧️",
-        subtitle: "우울감, 상실감, 그리고 위로가 필요한 상태",
-        headerColor: "#CDE4F7",
+        title: "가라앉는 마음 & 이별 🌧️",
+        subtitle: "먹먹한 우울감, 서운함, 그리고 조용한 위로가 필요한 때",
+        headerColor: "#C6DCF2", // 차분하고 깊은 라벤더 블루
+        borderColor: "#96C0E6",
         subSituations: [
-          { id: "down_1", label: "이별 후 먹먹함", jamendoSafeTag: "emotional", themeColor: "#D4DAF0" },
-          { id: "down_2", label: "이유 없이 마음이 텅 빔", jamendoSafeTag: "sad", themeColor: "#DBD3D8" },
-          { id: "down_3", label: "사소한 말에 깊게 베임", jamendoSafeTag: "piano", themeColor: "#DFE2E6" },
-          { id: "down_4", label: "세상에 혼자 남겨진 기분", jamendoSafeTag: "ambient", themeColor: "#C9DAF8" },
-          { id: "down_5", label: "다른 사람과 비교하며 자책감 듦", jamendoSafeTag: "sad", themeColor: "#E8EAF6" },
-          { id: "down_6", label: "노력해도 제자리걸음인 것 같아 막막함", jamendoSafeTag: "piano", themeColor: "#C5CAE9" },
-          { id: "down_7", label: "잊은 줄 알았던 기억이 불쑥 떠오름", jamendoSafeTag: "emotional", themeColor: "#9FA8DA" },
-          { id: "down_8", label: "누구에게도 털어놓지 못하고 속앓이 중", jamendoSafeTag: "ambient", themeColor: "#7986CB" }
+          { id: "down_1", label: "이별 후 먹먹함", jamendoSafeTag: "emotional", themeColor: "#EEF2F6" },
+          { id: "down_2", label: "이유 없이 마음이 텅 빔", jamendoSafeTag: "sad", themeColor: "#F0EFF2" },
+          { id: "down_3", label: "사소한 말에 깊게 베임", jamendoSafeTag: "piano", themeColor: "#EFF1F4" },
+          { id: "down_4", label: "세상에 혼자 남겨진 기분", jamendoSafeTag: "ambient", themeColor: "#EBF0F7" },
+          { id: "down_5", label: "다른 사람과 비교하며 자책감 듦", jamendoSafeTag: "sad", themeColor: "#F2F3F8" },
+          { id: "down_6", label: "노력해도 제자리걸음인 것 같아 막막함", jamendoSafeTag: "piano", themeColor: "#EDEFF7" },
+          { id: "down_7", label: "잊은 줄 알았던 기억이 불쑥 떠오름", jamendoSafeTag: "emotional", themeColor: "#E8EAF4" },
+          { id: "down_8", label: "누구에게도 털어놓지 못하고 속앓이 중", jamendoSafeTag: "ambient", themeColor: "#E4E6F2" }
         ]
       },
       {
         id: "OVERLOAD",
-        title: "과부하 & 관계 갈등 🤯",
-        subtitle: "스트레스, 다툼, 분노로 인해 머리가 복잡한 상태",
-        headerColor: "#FFD5D2",
+        title: "복잡한 생각 & 갈등 🤯",
+        subtitle: "스트레스와 관계 마찰로 머릿속이 엉켜 숨이 가쁜 상태",
+        headerColor: "#FFD4C2", // 산뜻한 로즈 피치
+        borderColor: "#FFAE91",
         subSituations: [
-          { id: "over_1", label: "연인과 사소한 일로 다툼", jamendoSafeTag: "chillout", themeColor: "#F8C8DC" },
-          { id: "over_2", label: "인간관계 마찰로 부글거림", jamendoSafeTag: "chillout", themeColor: "#FFBCAa" },
-          { id: "over_3", label: "잡생각이 꼬리를 물고 안 멈춤", jamendoSafeTag: "ambient", themeColor: "#FFC0CB" },
-          { id: "over_4", label: "실수 수습하느라 멘탈 흔들림", jamendoSafeTag: "rock", themeColor: "#FADADD" },
-          { id: "over_5", label: "팀플 무임승차 때문에 분통 터짐", jamendoSafeTag: "rock", themeColor: "#FFEBEE" },
-          { id: "over_6", label: "마감 직전 벼락치기로 심장 뜀", jamendoSafeTag: "energetic", themeColor: "#FFCDD2" },
-          { id: "over_7", label: "오해를 풀고 싶은데 자존심 상함", jamendoSafeTag: "chillout", themeColor: "#EF9A9A" },
-          { id: "over_8", label: "선 넘는 참견과 간섭에 숨 막힘", jamendoSafeTag: "ambient", themeColor: "#E57373" }
+          { id: "over_1", label: "연인과 사소한 일로 다툼", jamendoSafeTag: "chillout", themeColor: "#FAECEE" },
+          { id: "over_2", label: "인간관계 마찰로 부글거림", jamendoSafeTag: "chillout", themeColor: "#FAEDE8" },
+          { id: "over_3", label: "잡생각이 꼬리를 물고 안 멈춤", jamendoSafeTag: "ambient", themeColor: "#FAEEF0" },
+          { id: "over_4", label: "실수 수습하느라 멘탈 흔들림", jamendoSafeTag: "rock", themeColor: "#FAF0F2" },
+          { id: "over_5", label: "팀플 무임승차 때문에 분통 터짐", jamendoSafeTag: "rock", themeColor: "#FAF2F3" },
+          { id: "over_6", label: "마감 직전 벼락치기로 심장 뜀", jamendoSafeTag: "energetic", themeColor: "#FAEEF0" },
+          { id: "over_7", label: "오해를 풀고 싶은데 자존심 상함", jamendoSafeTag: "chillout", themeColor: "#F7E8E8" },
+          { id: "over_8", label: "선 넘는 참견과 간섭에 숨 막힘", jamendoSafeTag: "ambient", themeColor: "#F5E4E4" }
         ]
       },
       {
         id: "DEPLETED",
-        title: "에너지 고갈 & 지침 🪫",
-        subtitle: "모든 에너지가 바닥나 아무것도 할 수 없는 상태",
-        headerColor: "#FFE0B2",
+        title: "지친 하루 & 쉼의 필요 🪫",
+        subtitle: "모든 기운이 소진되어 가만히 기대어 쉬고 싶은 상태",
+        headerColor: "#FCE2BE", // 포근하고 아늑한 카멜 베이지
+        borderColor: "#F7C683",
         subSituations: [
-          { id: "dep_1", label: "끝없는 과제/업무에 치임", jamendoSafeTag: "relax", themeColor: "#FFD8B1" },
-          { id: "dep_2", label: "잠 부족으로 멍함", jamendoSafeTag: "ambient", themeColor: "#E8DDCB" },
-          { id: "dep_3", label: "사람 만나는 게 기 빨림", jamendoSafeTag: "ambient", themeColor: "#F3C1CE" },
-          { id: "dep_4", label: "손가락 하나 까딱할 힘 없음", jamendoSafeTag: "lofi", themeColor: "#D5E8D4" },
-          { id: "dep_5", label: "모니터만 오래 봐서 눈과 머리가 지끈거림", jamendoSafeTag: "relax", themeColor: "#FFF3E0" },
-          { id: "dep_6", label: "억지 미소 지으며 감정 노동함", jamendoSafeTag: "lofi", themeColor: "#FFE0B2" },
-          { id: "dep_7", label: "모든 알림 끄고 잠수 타고 싶음", jamendoSafeTag: "chill", themeColor: "#FFCC80" },
-          { id: "dep_8", label: "밥 챙겨 먹는 것조차 귀찮고 버거움", jamendoSafeTag: "ambient", themeColor: "#FFB74D" }
+          { id: "dep_1", label: "끝없는 과제/업무에 치임", jamendoSafeTag: "relax", themeColor: "#FAF3E8" },
+          { id: "dep_2", label: "잠 부족으로 멍함", jamendoSafeTag: "ambient", themeColor: "#F7F3EC" },
+          { id: "dep_3", label: "사람 만나는 게 기 빨림", jamendoSafeTag: "ambient", themeColor: "#FAF0EE" },
+          { id: "dep_4", label: "손가락 하나 까딱할 힘 없음", jamendoSafeTag: "lofi", themeColor: "#F2F6F2" },
+          { id: "dep_5", label: "모니터만 오래 봐서 눈과 머리가 지끈거림", jamendoSafeTag: "relax", themeColor: "#FAF5ED" },
+          { id: "dep_6", label: "억지 미소 지으며 감정 노동함", jamendoSafeTag: "lofi", themeColor: "#FAF2E6" },
+          { id: "dep_7", label: "모든 알림 끄고 잠수 타고 싶음", jamendoSafeTag: "chill", themeColor: "#FAF0E3" },
+          { id: "dep_8", label: "밥 챙겨 먹는 것조차 귀찮고 버거움", jamendoSafeTag: "ambient", themeColor: "#F7ECE0" }
         ]
       },
       {
         id: "CALM",
-        title: "잔잔함 & 고독 🍵",
-        subtitle: "외부 자극을 차단하고 혼자만의 고요함을 찾는 상태",
-        headerColor: "#D5E8D4",
+        title: "잔잔한 고요 & 사색 🍵",
+        subtitle: "차 한 잔과 함께 나를 온전히 마주하는 평온한 시간",
+        headerColor: "#CEEACE", // 마음이 편안해지는 말차 그린
+        borderColor: "#A1D6A1",
         subSituations: [
-          { id: "calm_1", label: "누구의 방해도 받기 싫음", jamendoSafeTag: "ambient", themeColor: "#E1D5E7" },
-          { id: "calm_2", label: "조용히 나를 돌아보는 중", jamendoSafeTag: "piano", themeColor: "#CDE4F7" },
-          { id: "calm_3", label: "적당한 거리감이 편안함", jamendoSafeTag: "piano", themeColor: "#FFF2B2" },
-          { id: "calm_4", label: "혼자만의 새벽 공기", jamendoSafeTag: "chillout", themeColor: "#E8DDCB" },
-          { id: "calm_5", label: "비 내리는 창밖을 가만히 응시함", jamendoSafeTag: "piano", themeColor: "#F3E5F5" },
-          { id: "calm_6", label: "혼자 걷는 밤 산책길이 포근함", jamendoSafeTag: "ambient", themeColor: "#E1BEE7" },
-          { id: "calm_7", label: "좋아하는 노래 하나만 무한 반복 중", jamendoSafeTag: "lounge", themeColor: "#CE93D8" },
-          { id: "calm_8", label: "복잡한 관계에서 벗어나 숨 쉬는 시간", jamendoSafeTag: "chillout", themeColor: "#BA68C8" }
+          { id: "calm_1", label: "누구의 방해도 받기 싫음", jamendoSafeTag: "ambient", themeColor: "#F3EEF5" },
+          { id: "calm_2", label: "조용히 나를 돌아보는 중", jamendoSafeTag: "piano", themeColor: "#EDF2F7" },
+          { id: "calm_3", label: "적당한 거리감이 편안함", jamendoSafeTag: "piano", themeColor: "#FAF6EA" },
+          { id: "calm_4", label: "혼자만의 새벽 공기", jamendoSafeTag: "chillout", themeColor: "#F4F1EC" },
+          { id: "calm_5", label: "비 내리는 창밖을 가만히 응시함", jamendoSafeTag: "piano", themeColor: "#F6F0F7" },
+          { id: "calm_6", label: "혼자 걷는 밤 산책길이 포근함", jamendoSafeTag: "ambient", themeColor: "#F4ECF7" },
+          { id: "calm_7", label: "좋아하는 노래 하나만 무한 반복 중", jamendoSafeTag: "lounge", themeColor: "#F0E7F5" },
+          { id: "calm_8", label: "복잡한 관계에서 벗어나 숨 쉬는 시간", jamendoSafeTag: "chillout", themeColor: "#ECE2F2" }
         ]
       },
       {
         id: "ACTIVE",
-        title: "활력 & 성취 🔥",
-        subtitle: "강한 에너지, 몰입, 그리고 짜릿한 성취감",
-        headerColor: "#C2E2EC",
+        title: "반짝이는 영감 & 활력 🔥",
+        subtitle: "기분 좋은 몰입, 설레는 의욕, 그리고 성취의 기쁨",
+        headerColor: "#C1ECF4", // 시원하고 청량한 스카이 블루
+        borderColor: "#8BD9E8",
         subSituations: [
-          { id: "act_1", label: "원하던 목표를 달성함", jamendoSafeTag: "upbeat", themeColor: "#C2E2EC" },
-          { id: "act_2", label: "영감과 의욕이 넘쳐남", jamendoSafeTag: "rnb", themeColor: "#C9DAF8" },
-          { id: "act_3", label: "잡념 없이 깊게 빠져드는 중", jamendoSafeTag: "electronic", themeColor: "#D4DAF0" },
-          { id: "act_4", label: "텐션 올리고 싶은 기분", jamendoSafeTag: "dance", themeColor: "#DBD3D8" },
-          { id: "act_5", label: "운동 후 땀 흘리고 개운함", jamendoSafeTag: "dance", themeColor: "#E0F7FA" },
-          { id: "act_6", label: "어려운 문제를 끝내 해결하고 짜릿함", jamendoSafeTag: "upbeat", themeColor: "#B2EBF2" },
-          { id: "act_7", label: "새로운 도전을 앞두고 설레는 긴장감", jamendoSafeTag: "electronic", themeColor: "#80DEEA" },
-          { id: "act_8", label: "오랜만에 마음에 드는 결과물이 나옴", jamendoSafeTag: "pop", themeColor: "#4DD0E1" }
+          { id: "act_1", label: "원하던 목표를 달성함", jamendoSafeTag: "upbeat", themeColor: "#EDF4F7" },
+          { id: "act_2", label: "영감과 의욕이 넘쳐남", jamendoSafeTag: "rnb", themeColor: "#EEF3FA" },
+          { id: "act_3", label: "잡념 없이 깊게 빠져드는 중", jamendoSafeTag: "electronic", themeColor: "#EFF2F7" },
+          { id: "act_4", label: "텐션 올리고 싶은 기분", jamendoSafeTag: "dance", themeColor: "#F2F1F4" },
+          { id: "act_5", label: "운동 후 땀 흘리고 개운함", jamendoSafeTag: "dance", themeColor: "#EEF8F9" },
+          { id: "act_6", label: "어려운 문제를 끝내 해결하고 짜릿함", jamendoSafeTag: "upbeat", themeColor: "#E7F6F8" },
+          { id: "act_7", label: "새로운 도전을 앞두고 설레는 긴장감", jamendoSafeTag: "electronic", themeColor: "#E0F2F5" },
+          { id: "act_8", label: "오랜만에 마음에 드는 결과물이 나옴", jamendoSafeTag: "pop", themeColor: "#DAEFF2" }
         ]
       }
     ];
@@ -578,7 +608,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAccordion() {
         const energySlider = document.getElementById('energy-slider');
         const energyFill = document.getElementById('energy-fill');
-        const energyThumb = document.getElementById('energy-thumb');
         const energyText = document.getElementById('energy-percentage-text');
         const accordionContainer = document.getElementById('mood-accordion-container');
         
@@ -587,9 +616,6 @@ document.addEventListener('DOMContentLoaded', () => {
         energySlider.value = energyLevel;
         if(energyFill) {
             energyFill.style.width = `${energyLevel}%`;
-        }
-        if(energyThumb) {
-            energyThumb.style.left = `calc(${energyLevel}% - ${energyLevel * 0.24}px)`;
         }
         if(energyText) {
             energyText.textContent = `${energyLevel}%`;
@@ -600,9 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
             energyLevel = Number(e.target.value);
             if(energyFill) {
                 energyFill.style.width = `${energyLevel}%`;
-            }
-            if(energyThumb) {
-                energyThumb.style.left = `calc(${energyLevel}% - ${energyLevel * 0.24}px)`;
             }
             if(energyText) {
                 energyText.textContent = `${energyLevel}%`;
@@ -625,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let selectedSafeTag = 'indie';
-    let selectedThemeColor = '#FFE4E1';
+    let selectedThemeColor = '#FAF2F2';
 
     function renderAccordionHTML(container) {
         container.innerHTML = '';
@@ -633,26 +656,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const isExpanded = expandedCategory === category.id;
             
             const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col mb-3";
+            wrapper.className = "flex flex-col mb-2.5";
 
             const card = document.createElement('div');
-            card.className = "relative rounded-[2rem] overflow-hidden flex flex-col";
-            card.style.backgroundColor = category.headerColor;
-            card.style.border = "3px solid black";
-            card.style.boxShadow = isExpanded ? "2px 2px 0px 0px black" : "4px 4px 0px 0px black";
-            card.style.transform = isExpanded ? "translate(2px, 2px)" : "none";
-            card.style.transition = "all 0.2s ease";
+            card.className = "relative rounded-3xl overflow-hidden flex flex-col transition-all duration-300";
+            card.style.backgroundColor = category.headerColor || '#FFFFFF';
+            card.style.border = isExpanded ? `1.5px solid ${category.borderColor || '#78716c'}` : `1px solid ${category.borderColor || '#E2DED9'}`;
+            card.style.boxShadow = isExpanded ? "0 12px 30px -8px rgba(28, 25, 23, 0.08)" : "0 2px 6px rgba(28, 25, 23, 0.02)";
 
             const btn = document.createElement('button');
-            btn.className = "w-full py-4 px-5 flex justify-between items-center bg-transparent outline-none cursor-pointer";
+            btn.className = "w-full py-4 px-6 flex justify-between items-center bg-transparent outline-none cursor-pointer";
             
             const textWrap = document.createElement('div');
             textWrap.className = "flex flex-col items-start text-left";
-            textWrap.innerHTML = `<span class="font-bold text-lg text-black">${category.title}</span>`;
+            textWrap.innerHTML = `<span class="font-medium text-base text-stone-900 font-editorial-serif tracking-tight">${category.title}</span>`;
             
             if (isExpanded) {
                 const subEl = document.createElement('span');
-                subEl.className = "text-sm font-medium text-gray-800 mt-1 break-keep";
+                subEl.className = "text-xs font-normal text-stone-600 mt-1 break-keep font-editorial-serif";
                 subEl.textContent = category.subtitle;
                 textWrap.appendChild(subEl);
             }
@@ -660,10 +681,13 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.appendChild(textWrap);
             
             const iconWrap = document.createElement('div');
-            iconWrap.className = "flex items-center justify-center bg-white border-2 border-black rounded-full flex-shrink-0";
-            iconWrap.style.width = '32px';
-            iconWrap.style.height = '32px';
-            iconWrap.innerHTML = `<span class="text-lg font-bold text-black leading-none">${isExpanded ? '−' : '+'}</span>`;
+            iconWrap.className = "flex items-center justify-center rounded-full flex-shrink-0 transition-colors";
+            iconWrap.style.width = '28px';
+            iconWrap.style.height = '28px';
+            iconWrap.style.backgroundColor = isExpanded ? '#292524' : 'rgba(255,255,255,0.85)';
+            iconWrap.style.color = isExpanded ? '#ffffff' : '#44403c';
+            iconWrap.style.border = isExpanded ? '1px solid #292524' : `1px solid ${category.borderColor || '#E2DED9'}`;
+            iconWrap.innerHTML = `<span class="text-sm font-light leading-none">${isExpanded ? '−' : '+'}</span>`;
             btn.appendChild(iconWrap);
 
             btn.onclick = (e) => {
@@ -675,32 +699,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isExpanded) {
                 const chipArea = document.createElement('div');
-                chipArea.className = "flex items-stretch gap-2 mt-2 w-full";
+                chipArea.className = "flex items-stretch gap-2 px-6 pb-6 pt-3 w-full border-t border-black/5 bg-white/40";
                 
-                // 1. Branch Indicator
-                const branchWrap = document.createElement('div');
-                branchWrap.className = "flex flex-col items-center pt-3 pl-3 pr-2 flex-shrink-0 relative";
-
-                const branchCircle = document.createElement('div');
-                branchCircle.className = "w-2.5 h-2.5 rounded-full border-[3px] border-black bg-white z-10";
-
-                const branchLine = document.createElement('div');
-                branchLine.className = "absolute top-5 left-[16px] w-[3px] h-[100%] bg-black -z-10";
-
-                branchWrap.appendChild(branchCircle);
-                branchWrap.appendChild(branchLine);
-                chipArea.appendChild(branchWrap);
-
-                // 2. Flex Wrap Grid
+                // Flex Wrap Grid (Soft Pebble Chips)
                 const chipScroll = document.createElement('div');
-                chipScroll.className = "flex flex-wrap gap-2 flex-1 min-w-0 pr-4 pb-4 pt-1";
+                chipScroll.className = "flex flex-wrap gap-2.5 flex-1 min-w-0";
 
                 category.subSituations.forEach(sit => {
                     const tagBtn = document.createElement('button');
                     const isSelected = selectedMood === sit.label;
-                    tagBtn.className = `px-4 py-2 border-[3px] border-black rounded-full font-bold text-sm transition-all whitespace-normal text-left leading-tight cursor-pointer ${isSelected ? 'bg-black text-white' : 'bg-white text-black'}`;
-                    tagBtn.style.boxShadow = isSelected ? 'none' : '3px 3px 0px 0px black';
-                    tagBtn.style.transform = isSelected ? 'translate(2px, 2px)' : 'none';
+                    tagBtn.className = `px-4 py-2 rounded-full text-sm font-editorial-serif transition-all whitespace-normal text-left leading-relaxed cursor-pointer ${
+                        isSelected 
+                            ? 'bg-[#292524] text-white border border-[#292524] shadow-md scale-[1.02] font-medium' 
+                            : 'bg-white border border-stone-300 text-stone-800 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:border-stone-500 hover:bg-stone-50'
+                    }`;
                     tagBtn.textContent = sit.label;
                     
                     tagBtn.onclick = (e) => {
@@ -811,17 +823,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (generatedImageUrl) {
                     canvasSlot.innerHTML = window.AndanteComponents.renderAICanvasCard({
                         imageUrl: generatedImageUrl,
-                        isLoading: false,
-                        isSaving: false
+                        isLoading: false
                     });
                 } else {
                     canvasSlot.innerHTML = `
-                    <div class="fade-in-up" style="border-radius: 1.5rem; border: 2px solid black; background-color: white; padding: 3rem 2rem; text-align: center; display: flex; flex-direction: column; gap: 2rem; box-shadow: 4px 4px 0px 0px #000; align-items: center;">
-                        <h3 style="font-weight: 900; color: black; font-size: 1.25rem; margin: 0;">🎨 나만의 힐링 감성 캔버스 그리기</h3>
-                        <p style="font-size: 0.875rem; color: #475569; font-weight: 500; max-width: 28rem; margin: 0 auto; line-height: 1.5;">
-                            AI가 분석된 기분과 시적 어조를 바탕으로 한 폭의 그림을 제작합니다.
-                        </p>
-                        <button id="draw-image-btn" class="active-press hover:brightness-105" style="padding: 1rem 2rem; border-radius: 9999px; border: 2px solid black; background-color: var(--pastel-sky, #bae6fd); box-shadow: 4px 4px 0px 0px #000; font-weight: bold; color: black; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <div class="editorial-card text-center py-14 px-8 flex flex-col items-center gap-6" style="margin: 0 auto; max-width: 640px;">
+                        <div style="width: 52px; height: 52px; border-radius: 50%; background: #f5f5f4; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #78716c;">
+                            🎨
+                        </div>
+                        <div>
+                            <h3 class="font-normal font-editorial-serif text-stone-800 text-xl mb-2">나만의 힐링 감성 캔버스 그리기</h3>
+                            <p class="text-xs text-stone-500 font-light max-w-sm mx-auto leading-relaxed">
+                                AI가 분석된 기분과 시적 어조를 바탕으로 16:9 와이드 명화 화폭을 제작합니다.
+                            </p>
+                        </div>
+                        <button id="draw-image-btn" class="active-press hover-lift" style="padding: 14px 32px; border-radius: 9999px; border: none; background: #1c1917; color: white; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; box-shadow: 0 8px 20px -4px rgba(0,0,0,0.25);">
                             <span>🖼️</span><span>AI 캔버스 화폭 생성</span>
                         </button>
                     </div>
@@ -834,15 +850,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalSlot = document.getElementById('final-actions-slot');
             if (finalSlot && generatedImageUrl) {
                 finalSlot.innerHTML = `
-                    <div style="display: flex; gap: 1.5rem; margin-top: 3rem; flex-wrap: wrap; justify-content: center;">
-                        
-                        <button id="final-save-btn" class="active-press hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: var(--pastel-pink, #fbcfe8); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center; max-width: 640px; margin-left: auto; margin-right: auto;">
+                        <button id="start-healing-btn" class="active-press hover-lift start-healing-btn" style="flex: 1; min-width: 180px; padding: 14px 28px; border-radius: 9999px; border: none; background: #065f46; color: white; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; box-shadow: 0 10px 25px -4px rgba(6,95,70,0.4);">
+                            🌿 힐링 시작 (전체화면)
+                        </button>
+                        <button id="final-save-btn" class="active-press hover-lift" style="flex: 1; min-width: 150px; padding: 14px 28px; border-radius: 9999px; border: 1px solid #e7e5e4; background: #ffffff; color: #292524; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                             💾 일기장 저장
                         </button>
-                        <button id="start-healing-btn" class="active-press start-healing-btn hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: #6EE7B7; box-shadow: 3px 3px 0px 0px rgba(0,0,0,1); font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
-                            🌿 힐링 시작
-                        </button>
-                        <button id="final-share-btn" class="active-press hover:brightness-105" style="flex: 1; padding: 1.25rem 2.5rem; white-space: nowrap; border-radius: 9999px; border: 2px solid black; background-color: var(--pastel-yellow, #fef08a); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; font-size: 1.1rem; color: black; cursor: pointer;">
+                        <button id="final-share-btn" class="active-press hover-lift" style="flex: 1; min-width: 150px; padding: 14px 28px; border-radius: 9999px; border: 1px solid #e7e5e4; background: #ffffff; color: #292524; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                             🌐 갤러리 공유
                         </button>
                     </div>
@@ -894,6 +909,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (analyzeBtn) {
         analyzeBtn.onclick = async () => {
+            if (!token) {
+                showToast('로그인이 필요한 서비스입니다. 로그인 화면으로 이동합니다.');
+                setTimeout(() => { location.href = '/login.html'; }, 1200);
+                return;
+            }
+
             const moodPrompt = document.getElementById('mood-input') ? document.getElementById('mood-input').value.trim() : '';
 
             if (!moodPrompt && document.getElementById('mood-input')) {
@@ -1283,17 +1304,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             playerContainer.innerHTML = `
-                <div class="brutal-card bg-white p-4 flex items-center justify-between shadow-brutal-sm rounded-2xl mx-auto border-2 border-slate-200" style="width: 100%; box-sizing: border-box;">
+                <div class="glass-panel p-4 flex items-center justify-between rounded-2xl mx-auto border border-stone-200/80 bg-white/85 backdrop-blur-md shadow-sm" style="width: 100%; box-sizing: border-box;">
                     <div class="flex items-center gap-4">
-                        <div style="width: 56px; height: 56px; border-radius: 50%; overflow: hidden; border: 2px solid #e2e8f0; flex-shrink: 0; background-color: #f1f5f9; display: flex; align-items: center; justify-content: center;">
-                            ${track.image ? `<img src="${track.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span class="text-2xl">🎵</span>`}
+                        <div style="width: 50px; height: 50px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); flex-shrink: 0; background-color: #f5f5f4; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04);">
+                            ${track.image ? `<img src="${track.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span class="text-xl">🎵</span>`}
                         </div>
                         <div>
-                            <p class="text-xs font-bold text-slate-500 mb-1">🎧 추천 힐링 트랙 (${displayTag.replace('ID:','')})</p>
-                            <h4 class="text-sm font-black text-slate-800 break-all line-clamp-1" style="margin: 0;">${track.name}</h4>
+                            <p class="text-[11px] font-medium text-stone-500 mb-0.5 tracking-wider font-editorial-sub">🎧 힐링 트랙 · ${displayTag.replace('ID:','')}</p>
+                            <h4 class="text-sm font-medium text-stone-800 break-all line-clamp-1 font-editorial-serif" style="margin: 0;">${track.name}</h4>
                         </div>
                     </div>
-                    <audio controls src="${track.audio}" style="height: 40px; max-width: 280px;"></audio>
+                    <audio controls src="${track.audio}" style="height: 36px; max-width: 280px;"></audio>
                 </div>
             `;
             const audioEl = playerContainer.querySelector('audio');

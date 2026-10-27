@@ -4,194 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Andante | AI 감성 힐링 캔버스</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <script>
+        if (!sessionStorage.getItem('authToken')) {
+            window.location.replace('/login.html');
+        }
+    </script>
+    <link rel="stylesheet" href="style.css?v=7">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
-    <script src="lib/theme-mapping.js"></script>
-    <script src="components/healing.js?v=4"></script>
+    <script src="lib/theme-mapping.js?v=7"></script>
+    <script src="components/healing.js?v=7"></script>
 </head>
-<body class="theme-transition min-h-screen">
+<body class="theme-transition min-h-screen text-stone-800">
     
-    <!-- Blur Blob Background -->
+    <!-- Ambient Dreamy Blobs Background -->
     <div id="blob-bg" class="blob-container">
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
     </div>
 
-    <!-- 1. AppHeader & Brand -->
-    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
-            <div>
-                <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
-                    Andante
-                </h1>
-                <p id="theme-concept-text" class="text-xs text-slate-600 font-medium margin-0">
-                    느리게 흐르는 민트빛 안단테
-                </p>
-            </div>
+    <!-- 1. Global Navigation Header (Editorial High-Fashion Layout, EVE HEALING Style) -->
+    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
+        <!-- Left Nav Links -->
+        <div class="flex items-center gap-6">
+            <button id="diary-btn" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden">
+                📓 일기장
+            </button>
+            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+                공유 갤러리
+            </button>
         </div>
 
-        <!-- User Info & Nav Controls -->
-        <div class="header-nav flex items-center gap-2">
-            <span id="user-info" class="user-badge font-bold text-black text-xs"></span>
-            <button id="login-nav-btn" class="icon-btn brutal-btn bg-yellow text-black font-bold">로그인</button>
-            <button id="diary-btn" class="icon-btn brutal-btn bg-pink text-black font-bold hidden">📓 일기장</button>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="icon-btn brutal-btn bg-sky text-black font-bold hidden">👤 마이페이지</button>
-            <button onclick="location.href='/board.html'" class="icon-btn brutal-btn bg-mint text-black font-bold">🌐 공유게시판</button>
-            <button id="logout-btn" class="icon-btn brutal-btn bg-red text-black font-bold hidden">로그아웃</button>
+        <!-- Center Brand Logo (Reference EVE HEALING Layout) -->
+        <div class="text-center cursor-pointer group" onclick="location.href='/'">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+                ANDANTE
+            </h1>
+            <p id="theme-concept-text" class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
+                a piece of comfort
+            </p>
+        </div>
+
+        <!-- Right Nav Links & User Status -->
+        <div class="flex items-center gap-4">
+            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden">
+                마이페이지
+            </button>
+            <button id="login-nav-btn" class="btn-editorial">
+                로그인
+            </button>
+            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold hidden">
+                로그아웃
+            </button>
         </div>
     </header>
 
-    <main id="main-content" class="container max-w-4xl mx-auto space-y-6 relative-z">
+    <main id="main-content" class="container max-w-4xl mx-auto space-y-6 relative-z px-4">
         
         <!-- Step 1: 마음 비우기 -->
-        <section id="step-1-input" style="margin-top: 3rem;">
-            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 2rem;">
-               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
-                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">1/3 - 마음 비우기</span>
-               </div>
+        <section id="step-1-input" class="mt-8">
+            <!-- Step Badge -->
+            <div class="flex items-center justify-center mb-8">
+                <div class="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
+                    <span class="font-editorial-title text-xs tracking-[0.2em] text-stone-900 font-bold">01 / 03</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></span>
+                    <span class="font-editorial-serif text-xs tracking-wider text-stone-800 font-medium">마음 비우기</span>
+                </div>
             </div>
             
-            <div id="home-section" class="brutal-card bg-card p-6 space-y-6 animate-float-continuous">
-                <div class="card-header border-b-2 border-black pb-3 flex justify-between items-center">
-                    <h2 class="text-lg font-black text-black flex items-center gap-2 margin-0">
-                        <span>💭</span>
-                        <span>오늘의 마음 상태 진단</span>
-                    </h2>
-                    <div class="location-badge px-3 py-1 rounded-full border-2 border-black bg-sky text-xs font-bold shadow-brutal-sm">
-                        <span id="weather-badge">🌡️</span> <span id="current-location-text">위치 찾는 중...</span>
+            <div id="home-section" class="editorial-card max-w-2xl mx-auto space-y-7 rounded-3xl" style="background-color: #FDFBF7;">
+                <!-- Card Header (Analog Diary Header) -->
+                <div class="border-b border-stone-200/80 pb-5 flex justify-between items-center">
+                    <div>
+                        <span class="text-[11px] tracking-[0.22em] uppercase font-semibold text-stone-500 block mb-1">
+                            ✦ Secret Diary · 오늘의 감정 기록
+                        </span>
+                        <h2 class="text-2xl font-normal text-stone-900 font-editorial-serif tracking-tight">
+                            마음 조심스레 털어놓기
+                        </h2>
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-stone-200 text-xs text-stone-700 font-medium shadow-sm">
+                        <span id="weather-badge">🍵</span>
+                        <span id="current-location-text">포근한 온기</span>
                     </div>
                 </div>
 
-                <!-- Mood Selection Cards (Figma Design) -->
-                <div class="input-group">
-                    <label class="block text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
-                        <span>🔋</span> 오늘의 에너지 배터리 충전량 (0~100%)
-                    </label>
+                <!-- Mood Selection & Warmth Gauge -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="text-xs font-medium tracking-wide text-stone-800 flex items-center gap-2 font-editorial-serif">
+                            <span>🌿</span> 오늘 내 마음에 머무는 온기
+                        </label>
+                        <div class="flex items-baseline gap-1">
+                            <span id="energy-percentage-text" class="font-editorial-title text-2xl font-light text-stone-900">
+                                100
+                            </span>
+                            <span class="text-xs font-serif text-stone-500">°</span>
+                        </div>
+                    </div>
                     
-                    <!-- Energy Battery Slider -->
-                    <div class="flex items-center gap-4 w-full mb-8">
-                        <!-- Percentage Text Label -->
-                        <div id="energy-percentage-text" class="w-16 flex-shrink-0 text-right font-black text-2xl text-black">
-                            100%
+                    <!-- Warmth Streamline Gauge Slider -->
+                    <div class="energy-slider-wrapper relative w-full pt-1 pb-2">
+                        <div class="relative w-full h-2.5 rounded-full bg-stone-200/80 border border-stone-300/80 overflow-hidden shadow-inner">
+                            <div id="energy-fill" class="h-full bg-gradient-to-r from-emerald-200 via-teal-300 to-emerald-400 transition-all duration-150 rounded-full shadow-[0_0_12px_rgba(52,211,153,0.35)]" style="width: 100%;"></div>
                         </div>
-                        
-                        <!-- Neo-brutalism Slider Track Container -->
-                        <div class="relative flex-1 h-8 rounded-full border-[3px] border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center overflow-hidden pr-[3px]">
-                            <!-- Fill -->
-                            <div id="energy-fill" class="absolute top-0 left-0 h-full bg-[#52D273] transition-all duration-100 border-r-[3px] border-black pointer-events-none" style="width: 100%;"></div>
-                            
-                            <!-- Tick Marks (25, 50, 75) -->
-                            <div class="absolute top-0 left-1/4 w-[2px] h-full bg-black/20 z-0"></div>
-                            <div class="absolute top-0 left-2/4 w-[2px] h-full bg-black/20 z-0"></div>
-                            <div class="absolute top-0 left-3/4 w-[2px] h-full bg-black/20 z-0"></div>
-                            
-                            <!-- Range Input (Invisible overlay for interaction) -->
-                            <input 
-                                type="range" 
-                                id="energy-slider"
-                                min="0" max="100" 
-                                value="100"
-                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
-                            
-                            <!-- Visual Custom Thumb Overlay -->
-                            <div id="energy-thumb" class="absolute w-6 h-6 bg-white border-[3px] border-black rounded-full pointer-events-none transition-all duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-20" style="left: calc(100% - 24px);"></div>
-                        </div>
+                        <input 
+                            type="range" 
+                            id="energy-slider"
+                            min="0" max="100" 
+                            value="100"
+                            class="energy-range-input"
+                        />
                     </div>
 
-                    <!-- Accordion Container -->
-                    <div id="mood-accordion-container" class="space-y-3 mt-4">
-                        <!-- Dynamic Accordions injected by app.js -->
+                    <!-- Accordion Container (Situations) -->
+                    <div class="pt-3">
+                        <div class="text-[11px] text-stone-500 font-editorial-serif mb-2 tracking-wide flex items-center gap-1.5">
+                            <span>✦</span> 지금 마음의 결에 가장 가까운 감정을 골라보세요
+                        </div>
+                        <div id="mood-accordion-container" class="space-y-2.5">
+                            <!-- Dynamic Accordions injected by app.js -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- User Prompt Textarea -->
-                <div class="input-group mt-6">
-                    <label class="block text-xs font-bold text-slate-700 mb-2">✍️ 이야기 적기 (오늘 하루 또는 솔직한 기분)</label>
-                    <textarea id="mood-input" rows="8" placeholder="예: 오늘 비가 촉촉하게 내리는데 피곤하지만 커피 한 잔 마시며 혼자만의 쉼을 얻고 싶어..." class="brutal-textarea speech-bubble"></textarea>
+                <!-- User Prompt Textarea (Lined Letter Paper) -->
+                <div class="space-y-2 pt-2">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-medium tracking-wide text-stone-800 font-editorial-serif">
+                            ✍️ 나만의 비밀 편지지 <span class="text-stone-500 font-normal">(가장 솔직한 마음의 문장을 남겨주세요)</span>
+                        </label>
+                    </div>
+                    <textarea 
+                        id="mood-input" 
+                        rows="6" 
+                        placeholder="오늘 하루 머릿속을 맴돌던 생각이나 지친 마음, 혹은 가슴 벅찬 순간을 조용히 적어보세요...&#10;당신의 이야기는 누구에게도 판단받지 않는 따뜻한 시가 됩니다." 
+                        class="diary-letter-paper"
+                    ></textarea>
                 </div>
 
-                <!-- Analyze Button -->
-                <div style="display: flex; justify-content: center; padding-top: 1.5rem;">
-                    <button id="analyze-btn" class="active-press transition-all disabled:opacity-50" style="width: 100%; max-width: 320px; padding: 16px 24px; border-radius: 16px; border: 2px solid black; background-color: var(--pastel-mint, #bbf7d0); box-shadow: 4px 4px 0px 0px #000; font-weight: 900; color: black; font-size: 18px;">
-                        <span id="analyze-btn-text">안단테에게 마음 보내기</span>
+                <!-- Analyze Button (Warm Pill Action) -->
+                <div class="pt-2 flex justify-center">
+                    <button id="analyze-btn" class="active-press hover-lift w-full py-4 rounded-full bg-stone-900 text-white font-medium text-xs tracking-[0.22em] uppercase transition-all shadow-md hover:bg-stone-800 disabled:opacity-50 flex items-center justify-center gap-2">
+                        <span id="analyze-btn-text">🌿 안단테에게 마음 보내기 ➔</span>
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- Neo-brutalism Asymptotic Loader Modal -->
-
         <!-- Step 2: 마음 채우기 (시 감상) -->
-        <section id="step-2-poem" class="hidden w-full max-w-2xl mx-auto flex-col justify-center min-h-[50vh]" style="margin-top: 3rem;">
-            <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-               <button id="btn-back-to-1" class="active-press hover:bg-slate-50" style="padding: 8px 20px; font-size: 14px; font-weight: 900; background-color: white; border: 2px solid black; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">⬅ 이전 단계</button>
+        <section id="step-2-poem" class="hidden w-full max-w-2xl mx-auto flex-col justify-center min-h-[50vh] mt-8">
+            <div class="mb-8 flex justify-between items-center w-full">
+               <button id="btn-back-to-1" class="btn-editorial active-press">
+                   ← 이전 단계
+               </button>
                
-               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">2/3 - 마음 채우기</span>
+               <div class="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
+                   <span class="font-editorial-title text-xs tracking-[0.2em] text-stone-900 font-bold">02 / 03</span>
+                   <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+                   <span class="font-editorial-serif text-xs tracking-wider text-stone-800 font-medium">마음 채우기</span>
                </div>
                
-               <div style="width: 100px;" class="hidden sm:block"></div>
+               <div class="w-20 hidden sm:block"></div>
             </div>
             
             <div id="poem-card-slot"></div>
 
-            <div style="margin-top: 3rem; display: flex; justify-content: center; width: 100%;" id="step-2-next-wrapper">
-               <button id="btn-next-to-3" class="active-press" style="width: 100%; padding: 1.25rem 2rem; border-radius: 9999px; font-weight: bold; font-size: 1rem; color: black; background-color: var(--pastel-yellow, #fef08a); border: 2px solid black; box-shadow: 4px 4px 0px 0px #000;">다음: 나의 마음이 그려진 캔버스 보기 ➔</button>
+            <div class="mt-8 flex justify-center w-full" id="step-2-next-wrapper">
+               <button id="btn-next-to-3" class="active-press hover-lift px-10 py-4 rounded-full bg-stone-900 text-white text-xs tracking-[0.2em] uppercase transition-all shadow-md hover:bg-stone-800">
+                   나의 마음이 그려진 캔버스 보기 ➔
+               </button>
             </div>
         </section>
 
         <!-- Step 3: 마음 완성하기 (그림 & 음악) -->
-        <section id="step-3-canvas" class="hidden w-full space-y-8" style="margin-top: 3rem;">
-            <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-               <button id="btn-back-to-2" class="active-press hover:bg-slate-50" style="padding: 8px 20px; font-size: 14px; font-weight: 900; background-color: white; border: 2px solid black; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">⬅ 이전 단계</button>
+        <section id="step-3-canvas" class="hidden w-full space-y-8 mt-8">
+            <div class="mb-8 flex justify-between items-center w-full max-w-2xl mx-auto">
+               <button id="btn-back-to-2" class="btn-editorial active-press">
+                   ← 이전 단계
+               </button>
                
-               <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border: 2px solid black; background-color: white; border-radius: 50px; box-shadow: 2px 2px 0px 0px #000;">
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid black; background-color: white;"></div>
-                   <div style="width: 12px; height: 12px; border-radius: 50%; background-color: black;"></div>
-                   <span style="margin-left: 8px; font-size: 14px; font-weight: 900; color: black;">3/3 - 마음 완성하기</span>
+               <div class="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
+                   <span class="font-editorial-title text-xs tracking-[0.2em] text-stone-900 font-bold">03 / 03</span>
+                   <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+                   <span class="font-editorial-serif text-xs tracking-wider text-stone-800 font-medium">마음 완성하기</span>
                </div>
                
-               <div style="width: 100px;" class="hidden sm:block"></div>
+               <div class="w-20 hidden sm:block"></div>
             </div>
 
-            <div id="music-sticker-slot" style="margin-bottom: 2rem;"></div>
-            
-            <div id="canvas-card-slot" style="margin-bottom: 2rem;"></div>
+            <!-- Artwork Canvas Slot -->
+            <div id="canvas-card-slot" class="max-w-2xl mx-auto"></div>
 
+            <!-- Floating Frosted Glass Audio Player Slot -->
+            <div id="music-sticker-slot" class="max-w-2xl mx-auto"></div>
+
+            <!-- Action Buttons Slot -->
             <div id="final-actions-slot"></div>
             
-            <div style="margin-top: 3rem; padding-bottom: 2rem; display: flex; justify-content: center;">
-                <button id="btn-restart" class="active-press" style="padding: 12px 24px; border-radius: 9999px; font-weight: bold; font-size: 14px; color: black; background-color: white; border: 2px solid black; box-shadow: 2px 2px 0px 0px #000; cursor: pointer;">
-                    🔄 처음부터 다시 하기
+            <!-- Restart Button -->
+            <div class="pt-8 pb-8 flex justify-center">
+                <button id="btn-restart" class="text-xs uppercase tracking-widest text-stone-600 hover:text-stone-900 transition-colors font-semibold flex items-center gap-2">
+                    <span>↺</span> 처음부터 다시 하기
                 </button>
             </div>
         </section>
     </main>
 
     <!-- 일기장 페이지 뷰 -->
-    <section id="diary-section" class="hidden w-full space-y-6 relative-z pb-12 pt-8">
+    <section id="diary-section" class="hidden w-full space-y-6 relative-z pb-16 pt-8">
         <div class="flex justify-between items-center mb-8 mx-auto" style="max-width: 1100px; padding: 0 60px;">
-            <h2 class="text-3xl font-black text-slate-800 drop-shadow-sm flex items-center gap-3">
-                <span>📓</span> 내 일기장
+            <h2 class="text-2xl font-light font-editorial-serif text-stone-800 flex items-center gap-3">
+                <span>📓</span> 내 일기장 서가
             </h2>
-            <button id="close-posts-btn" class="brutal-btn bg-white text-black font-bold px-6 py-3 rounded-full shadow-brutal-sm hover:bg-slate-50 transition-colors">
-                돌아가기 ➔
+            <button id="close-posts-btn" class="btn-editorial">
+                ← 돌아가기
             </button>
         </div>
         
-        <div id="posts-loader" class="hidden text-center p-4">
+        <div id="posts-loader" class="hidden text-center p-8">
             <div class="spinner margin-auto"></div>
-            <p class="font-bold text-slate-700 mt-4">기록을 불러오는 중...</p>
+            <p class="font-editorial-serif text-stone-500 mt-4 text-sm">소중한 기록을 불러오는 중...</p>
         </div>
         
         <div id="posts-container" class="w-full pt-4 pb-4">
@@ -199,28 +234,28 @@
         </div>
 
         <!-- 일기장 하단 음악 플레이어 -->
-        <div id="diary-music-player-container" class="mx-auto mt-4 transition-opacity duration-500" style="max-width: 1100px; opacity: 0; padding: 0 60px;">
+        <div id="diary-music-player-container" class="mx-auto mt-6 transition-opacity duration-500" style="max-width: 1100px; opacity: 0; padding: 0 60px;">
             <!-- Music player injected here -->
         </div>
     </section>
 
     <!-- 게시판 공유 모달 -->
     <div id="share-modal" class="modal hidden">
-        <div class="modal-content brutal-card bg-card max-w-md w-full text-center">
-            <h2 class="text-lg font-black text-black mb-2">🌐 공유 게시판 공유</h2>
-            <p class="text-xs text-slate-600 mb-4">안단테 힐링 작품을 다른 사람들과 함께 나눠보세요.</p>
+        <div class="modal-content max-w-md w-full text-center">
+            <h2 class="text-xl font-normal font-editorial-serif text-stone-800 mb-2">🌐 공유 갤러리 공유</h2>
+            <p class="text-xs text-stone-500 mb-6">안단테 힐링 작품을 다른 사람들과 함께 따뜻하게 나눠보세요.</p>
             <input type="hidden" id="share-diary-id">
-            <div class="input-group text-left mb-3">
-                <label class="text-xs font-bold text-black">제목</label>
-                <input type="text" id="share-title" placeholder="멋진 제목을 지어주세요" class="brutal-input">
-            </div>
             <div class="input-group text-left mb-4">
-                <label class="text-xs font-bold text-black">내용</label>
-                <textarea id="share-content" rows="4" placeholder="작품에 대한 생각이나 감정을 자유롭게 적어주세요" class="brutal-textarea"></textarea>
+                <label class="text-xs font-medium text-stone-700 block mb-1">제목</label>
+                <input type="text" id="share-title" placeholder="작품에 어울리는 감성적인 제목" class="brutal-input">
             </div>
-            <div class="flex gap-2">
-                <button id="share-cancel-btn" class="flex-1 py-3 brutal-btn bg-slate-200 text-black font-bold">취소</button>
-                <button id="share-submit-btn" class="flex-1 py-3 brutal-btn bg-pink text-black font-bold">공유 완료</button>
+            <div class="input-group text-left mb-6">
+                <label class="text-xs font-medium text-stone-700 block mb-1">내용</label>
+                <textarea id="share-content" rows="4" placeholder="작품에 대한 생각이나 마음에 남은 여운을 적어주세요" class="brutal-textarea"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button id="share-cancel-btn" class="flex-1 py-3 btn-editorial">취소</button>
+                <button id="share-submit-btn" class="flex-1 py-3 rounded-full bg-stone-900 text-white text-xs font-medium tracking-widest uppercase hover:bg-stone-800 transition-all shadow-sm">공유 완료</button>
             </div>
         </div>
     </div>
@@ -229,55 +264,57 @@
     
     <!-- 힐링 전체화면 오버레이 -->
     <div id="healing-fullscreen-overlay" class="hidden fixed inset-0 z-[9999] bg-black transition-opacity duration-1000 opacity-0 cursor-default flex items-center justify-center overflow-hidden select-none">
-    <!-- 1. 메인 힐링 이미지 (16:9 와이드) -->
-    <img id="healing-fullscreen-bg" class="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 transition-opacity duration-[2000ms]" src="" alt="">
-    <img id="healing-fullscreen-image" class="relative z-10 object-cover w-full h-full opacity-0 transition-opacity duration-[2000ms]" src="" alt="Healing Artwork">
+        <!-- 1. 메인 힐링 이미지 (16:9 와이드) -->
+        <img id="healing-fullscreen-bg" class="absolute inset-0 w-full h-full object-cover blur-3xl opacity-40 transition-opacity duration-[2000ms]" src="" alt="">
+        <img id="healing-fullscreen-image" class="relative z-10 object-cover w-full h-full opacity-0 transition-opacity duration-[2000ms]" src="" alt="Healing Artwork">
 
-    <!-- 2. 은은한 비네팅 그라데이션 (자막 가독성 확보) -->
-    <div class="absolute inset-0 z-20 pointer-events-none bg-gradient-to-t from-black/70 via-transparent to-black/30"></div>
+        <!-- 2. 은은한 비네팅 그라데이션 (자막 가독성 확보) -->
+        <div class="absolute inset-0 z-20 pointer-events-none bg-gradient-to-t from-black/80 via-transparent to-black/30"></div>
 
-    <!-- 3. 초경량 앰비언트 파티클 캔버스 -->
-    <canvas id="healing-particle-canvas" class="absolute inset-0 z-30 pointer-events-none w-full h-full"></canvas>
+        <!-- 3. 초경량 앰비언트 파티클 캔버스 -->
+        <canvas id="healing-particle-canvas" class="absolute inset-0 z-30 pointer-events-none w-full h-full"></canvas>
 
-    <!-- 4. 시(Poem) 자막 오버레이 -->
-    <div id="healing-subtitle-container" class="absolute bottom-16 inset-x-0 z-40 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
-        <p id="healing-subtitle-text" class="text-white/95 text-xl md:text-2xl font-normal drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] opacity-0 transition-opacity duration-1000 font-leeseoyun break-keep max-w-2xl">
-        </p>
+        <!-- 4. 시(Poem) 자막 오버레이 -->
+        <div id="healing-subtitle-container" class="absolute bottom-20 inset-x-0 z-40 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+            <p id="healing-subtitle-text" class="text-white/95 text-2xl md:text-3xl font-normal drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] opacity-0 transition-opacity duration-1000 font-leeseoyun break-keep max-w-2xl leading-relaxed">
+            </p>
+        </div>
+
+        <!-- 5. 닫기 버튼 -->
+        <div id="healing-fullscreen-controls" class="absolute top-8 right-8 z-50 transition-opacity duration-500">
+            <button id="close-healing-btn" class="px-5 py-2.5 bg-black/40 hover:bg-black/70 text-white/90 text-xs tracking-widest uppercase rounded-full backdrop-blur-md border border-white/20 transition-all duration-300">
+                ✕ 힐링 종료 (ESC)
+            </button>
+        </div>
     </div>
 
-    <!-- 5. 닫기 버튼 -->
-    <div id="healing-fullscreen-controls" class="absolute top-6 right-6 z-50 transition-opacity duration-500">
-        <button id="close-healing-btn" class="px-4 py-2 bg-black/50 hover:bg-black/80 text-white/90 text-sm rounded-full backdrop-blur-md border border-white/20 transition-all duration-500">
-            ✕ 힐링 종료 (ESC)
-        </button>
-    </div>
-</div>
+    <script src="app.js?v=25"></script>
 
-    <script src="app.js?v=18"></script>
-        <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px);">
-            <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-6 py-8 border-[3px] border-black rounded-2xl transition-all duration-300" style="background-color: #FFE68C; box-shadow: 5px 5px 0px 0px rgba(0,0,0,1); transform: scale(1);">
-                
-                <!-- Animated Rotating Ring & Percentage -->
-                <div class="relative flex items-center justify-center w-24 h-24 mb-6">
-                    <svg class="absolute w-full h-full animate-[spin_3s_linear_infinite]" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="black" stroke-width="4" stroke-dasharray="60 40 40 40" stroke-linecap="round" />
-                        <circle cx="50" cy="50" r="35" fill="none" stroke="#52D273" stroke-width="4" stroke-dasharray="30 20 50 10" stroke-linecap="round" opacity="0.8" class="animate-[spin_4s_linear_infinite_reverse]" />
-                    </svg>
-                    <div class="text-2xl font-extrabold text-black drop-shadow-sm">
-                        <span id="loader-percentage">0</span><span class="text-sm">%</span>
-                    </div>
-                </div>
-
-                <!-- Dynamic Progress Text -->
-                <div class="h-10 mb-4 font-bold text-center text-slate-800 break-keep flex items-center justify-center" id="loader-text">
-                    적어주신 이야기 속 감정과 에너지 분석 중...
-                </div>
-
-                <!-- Neo-brutalism Progress Bar -->
-                <div class="w-full h-6 bg-white border-[3px] border-black rounded-full overflow-hidden" style="box-shadow: inset 2px 2px 0px rgba(0,0,0,0.1);">
-                    <div id="loader-bar" class="h-full bg-[#52D273] transition-all duration-300 ease-out border-r-[3px] border-black" style="width: 0%; opacity: 0;"></div>
+    <!-- Asymptotic Loader Modal (Frosted Glass Editorial Refinement) -->
+    <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px);">
+        <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-8 py-10 rounded-3xl transition-all duration-300 bg-white/90 backdrop-blur-2xl border border-stone-200/80 shadow-2xl" style="transform: scale(1);">
+            
+            <!-- Animated Rotating Minimalist Ring & Percentage -->
+            <div class="relative flex items-center justify-center w-24 h-24 mb-6">
+                <svg class="absolute w-full h-full animate-[spin_4s_linear_infinite]" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e7e5e4" stroke-width="2.5" />
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#292524" stroke-width="2.5" stroke-dasharray="80 160" stroke-linecap="round" />
+                </svg>
+                <div class="text-2xl font-light font-editorial-title text-stone-800">
+                    <span id="loader-percentage">0</span><span class="text-xs font-normal ml-0.5">%</span>
                 </div>
             </div>
+
+            <!-- Dynamic Progress Text -->
+            <div class="h-10 mb-6 text-sm font-normal font-editorial-serif text-center text-stone-700 break-keep flex items-center justify-center" id="loader-text">
+                적어주신 이야기 속 감정과 에너지 분석 중...
+            </div>
+
+            <!-- Sleek Minimal Progress Bar -->
+            <div class="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div id="loader-bar" class="h-full bg-stone-800 transition-all duration-300 ease-out rounded-full" style="width: 0%; opacity: 0;"></div>
+            </div>
         </div>
+    </div>
 </body>
 </html>

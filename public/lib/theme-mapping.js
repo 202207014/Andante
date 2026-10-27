@@ -5,25 +5,25 @@ const THEME_MATRIX = {
   Morning: {
     Sunny: {
       themeId: "morning-sunny",
-      background: "oklch(0.94 0.11 100)", // Bright Morning Yellow
+      background: "linear-gradient(135deg, #FFF9ED 0%, #FFF1D6 50%, #FDEED9 100%)", // Warm Sunrise Peach/Amber
       accentColor: "var(--pastel-yellow)",
       concept: "햇살 가득한 첫인사"
     },
     Cloudy: {
       themeId: "morning-cloudy",
-      background: "oklch(0.9 0.04 250)",  // Grey-Blue
+      background: "linear-gradient(135deg, #F4F6F9 0%, #E9EFF5 50%, #E2EBF2 100%)", // Gentle Mist Grey-Blue
       accentColor: "var(--pastel-sky)",
       concept: "잔잔한 안개 아침"
     },
     Rainy: {
       themeId: "morning-rainy",
-      background: "oklch(0.87 0.06 230)",
+      background: "linear-gradient(135deg, #EDF2F7 0%, #DEE7F0 50%, #D4E1EC 100%)", // Dewy Morning Rain
       accentColor: "var(--pastel-sky)",
       concept: "빗소리로 깨어나는 아침"
     },
     Snowy: {
       themeId: "morning-snowy",
-      background: "oklch(0.95 0.02 200)",
+      background: "linear-gradient(135deg, #F8FAFC 0%, #EFF4F8 50%, #E5EFF5 100%)", // Pure Snow Frost
       accentColor: "var(--pastel-mint)",
       concept: "하얀 설원의 깨끗함"
     }
@@ -31,25 +31,25 @@ const THEME_MATRIX = {
   Afternoon: {
     Sunny: {
       themeId: "afternoon-sunny",
-      background: "oklch(0.93 0.08 155)", // Mint
+      background: "linear-gradient(135deg, #F4F8F4 0%, #E8F2E8 50%, #DEF0DF 100%)", // Fresh Sage Garden
       accentColor: "var(--pastel-mint)",
       concept: "따스한 오후의 정원"
     },
     Cloudy: {
       themeId: "afternoon-cloudy",
-      background: "oklch(0.9 0.04 250)",  // Grey-Blue
+      background: "linear-gradient(135deg, #F5F4F8 0%, #EBE8F3 50%, #E3E0EE 100%)", // Soft Lilac Cloud
       accentColor: "var(--pastel-lilac)",
       concept: "구름 한 조각의 휴식"
     },
     Rainy: {
       themeId: "afternoon-rainy",
-      background: "oklch(0.85 0.07 240)",
+      background: "linear-gradient(135deg, #EBF1F5 0%, #DCE7EE 50%, #CFDEE7 100%)", // Rainy Window Café
       accentColor: "var(--pastel-sky)",
       concept: "소나기 지나가는 카페"
     },
     Snowy: {
       themeId: "afternoon-snowy",
-      background: "oklch(0.92 0.05 280)",
+      background: "linear-gradient(135deg, #F8F4F6 0%, #EFE8ED 50%, #E8DFE6 100%)", // Soft Cozy Snow Rose
       accentColor: "var(--pastel-pink)",
       concept: "소복이 쌓이는 오후"
     }
@@ -57,25 +57,25 @@ const THEME_MATRIX = {
   Evening: {
     Sunny: {
       themeId: "evening-sunny",
-      background: "oklch(0.88 0.1 45)",   // Sunset Amber
+      background: "linear-gradient(135deg, #FFF0E6 0%, #FFE2D4 50%, #F5D3E9 100%)", // Golden Hour Apricot-Lilac
       accentColor: "var(--pastel-pink)",
       concept: "황금빛 노을 캔버스"
     },
     Cloudy: {
       themeId: "evening-cloudy",
-      background: "oklch(0.88 0.1 45)",   // Sunset Amber
+      background: "linear-gradient(135deg, #FBF1EB 0%, #F3E5DF 50%, #E8DCDE 100%)", // Warm Dusk Amber
       accentColor: "var(--pastel-yellow)",
       concept: "해질녘의 서정적인 바람"
     },
     Rainy: {
       themeId: "evening-rainy",
-      background: "oklch(0.83 0.06 270)",
+      background: "linear-gradient(135deg, #EDEAF2 0%, #DDD6E5 50%, #D1CADB 100%)", // Twilight Rain Lavender
       accentColor: "var(--pastel-lilac)",
       concept: "비에 젖은 노을빛"
     },
     Snowy: {
       themeId: "evening-snowy",
-      background: "oklch(0.87 0.08 20)",
+      background: "linear-gradient(135deg, #FBF2F4 0%, #F3E3E7 50%, #E9D5DC 100%)", // Silent Rose Dust
       accentColor: "var(--pastel-pink)",
       concept: "분홍빛 정적의 저녁"
     }
@@ -83,25 +83,25 @@ const THEME_MATRIX = {
   Night: {
     Sunny: {
       themeId: "night-sunny",
-      background: "oklch(0.84 0.05 300)", // Cozy Night Lilac
+      background: "linear-gradient(135deg, #F3EFF8 0%, #E6DFEE 50%, #D9D2E5 100%)", // Starry Night Soft Lilac
       accentColor: "var(--pastel-lilac)",
       concept: "맑은 별밤 아래 나"
     },
     Cloudy: {
       themeId: "night-cloudy",
-      background: "oklch(0.84 0.05 300)", // Cozy Night Lilac
+      background: "linear-gradient(135deg, #F0EEF5 0%, #E3E0EB 50%, #D7D3E2 100%)", // Cozy Ambient Charcoal Mist
       accentColor: "var(--pastel-lilac)",
       concept: "은은한 밤공기와 온기"
     },
     Rainy: {
       themeId: "night-rainy",
-      background: "oklch(0.82 0.06 260)", // Midnight Blue-Purple
+      background: "linear-gradient(135deg, #E6EDF5 0%, #D5DFEC 50%, #C7D3E2 100%)", // Deep Midnight Rain
       accentColor: "var(--pastel-sky)",
       concept: "깊은 밤 빗소리 속 몰입"
     },
     Snowy: {
       themeId: "night-snowy",
-      background: "oklch(0.82 0.06 260)", // Midnight Blue-Purple
+      background: "linear-gradient(135deg, #EDEAF2 0%, #DFDAE7 50%, #D2CDDC 100%)", // Quiet Snow Night
       accentColor: "var(--pastel-pink)",
       concept: "고요히 눈 내리는 밤"
     }
@@ -136,7 +136,7 @@ function resolveThemeByEnv(hour, weather) {
 
   return theme || {
     themeId: "default-mint",
-    background: "oklch(0.93 0.08 155)",
+    background: "linear-gradient(135deg, #F4F8F4 0%, #E8F2E8 50%, #DEF0DF 100%)",
     accentColor: "var(--pastel-mint)",
     concept: "느리게 흐르는 민트빛 안단테"
   };

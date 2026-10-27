@@ -269,8 +269,11 @@ app.get('/api/music', async (req, res) => {
             return res.status(404).json({ error: 'NO_RESULTS_FOUND' });
         }
 
-        // Tag 기반 추천 로직
+        // Tag 기반 추천 로직 (최소 재생 시간 필터링 적용)
         const searchTag = requestedTag || 'chill';
+        const minDuration = parseInt(req.query.min_duration) || 60; // 최소 60초(1분) 기본 보장
+        const maxDuration = 600; // 최대 10분
+        const EXCLUDED_KEYWORDS = ['logo', 'jingle', 'ident', 'stinger', 'bumper', 'sound effect', 'sfx', 'intro', 'commercial', 'opener'];
         
         async function attemptFetch(tag, bpmParam) {
             let speedParam = '';
@@ -285,14 +288,15 @@ app.get('/api/music', async (req, res) => {
                 }
             }
             
-            const cacheKey = `jamendo_${tag}_${speedParam}`;
+            const cacheKey = `jamendo_${tag}_${speedParam}_min${minDuration}`;
             const now = Date.now();
             const cached = jamendoCache.get(cacheKey);
             if (cached && cached.expiresAt > now) {
                 return cached.data;
             }
 
-            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=30&tags=${encodeURIComponent(tag)}${speedParam ? '&speed=' + speedParam : ''}`;
+            // durationbetween 파라미터로 60초 이상의 온전한 트랙만 1차 요청 (최대 40곡)
+            const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${client_id}&format=json&limit=40&durationbetween=${minDuration}_${maxDuration}&tags=${encodeURIComponent(tag)}${speedParam ? '&speed=' + speedParam : ''}`;
             
             // Jamendo API randomly drops queries and returns 0 results. Retry up to 3 times.
             for (let i = 0; i < 3; i++) {
@@ -301,8 +305,19 @@ app.get('/api/music', async (req, res) => {
                     const results = response.data.results;
                     
                     if (results && results.length > 0) {
-                        jamendoCache.set(cacheKey, { data: results, expiresAt: now + CACHE_TTL });
-                        return results;
+                        // 2차 검증: 최소 재생 시간 미만 및 TV 로고/징글/효과음 제외
+                        const validTracks = results.filter(track => {
+                            const dur = track.duration || 0;
+                            if (dur < minDuration) return false;
+                            const titleLower = (track.name || '').toLowerCase();
+                            const isJingleOrLogo = EXCLUDED_KEYWORDS.some(kw => titleLower.includes(kw));
+                            return !isJingleOrLogo;
+                        });
+
+                        if (validTracks.length > 0) {
+                            jamendoCache.set(cacheKey, { data: validTracks, expiresAt: now + CACHE_TTL });
+                            return validTracks;
+                        }
                     }
                     // if 0 results, wait 200ms and retry
                     await new Promise(r => setTimeout(r, 200));
@@ -345,7 +360,8 @@ app.get('/api/music', async (req, res) => {
                 name: track.name,
                 artist_name: track.artist_name,
                 audio: normalizedAudioUrl,
-                image: track.image
+                image: track.image,
+                duration: track.duration
             }
         });
 

@@ -1,4 +1,28 @@
-/* 온글잎 이서윤체 웹폰트 */
+/* ==========================================================================
+   Andante Editorial Warm Minimalism & Soft Glassmorphism Design System
+   ========================================================================== */
+
+/* 1. Google Web Fonts & Korean Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Noto+Serif+KR:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+/* 마루 부리 (Maru Buri) 웹폰트 - 서정적 명조 본문용 */
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri.woff');
+@font-face {
+    font-family: 'MaruBuri';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'MaruBuri';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Bold.woff') format('woff');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 온글잎 이서윤체 웹폰트 (시 & 감성 자막용) */
 @font-face {
     font-family: 'Ownglyph_LeeSeoyun';
     src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2405-2@1.0/Ownglyph_LeeSeoyun.woff2') format('woff2');
@@ -8,34 +32,70 @@
 }
 
 .font-poem, .font-leeseoyun {
-    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive !important;
+    font-family: 'Ownglyph_LeeSeoyun', 'MaruBuri', 'Noto Serif KR', serif, cursive !important;
 }
 
+.font-editorial-title {
+    font-family: 'Cinzel', 'Playfair Display', serif;
+    letter-spacing: 0.25em;
+}
+
+.font-editorial-sub {
+    font-family: 'Playfair Display', 'Cormorant Garamond', serif;
+    font-style: italic;
+    letter-spacing: 0.12em;
+}
+
+.font-editorial-serif {
+    font-family: 'MaruBuri', 'Noto Serif KR', 'KoPub Batang', serif;
+}
+
+/* 2. Global Design Tokens */
 :root {
-    --primary: #8a2be2;
-    --primary-hover: #9b4dca;
-    --secondary: #2c3e50;
-    --text-light: #1e1e24;
-    --text-dark: #2f3640;
+    /* Editorial Warm Paper Backgrounds */
+    --bg-editorial: #FAF8F5;
+    --bg-paper: #FDFBF7;
+    --background: #FAF8F5;
+    --foreground: #1c1917; /* Stone 900 */
+    --card: #FFFFFF;
+    --border: #E2DED9;     /* Clearly Defined Stone 300 */
     
-    /* Neo-Brutalism + Pastel Healing Tokens */
-    --pastel-pink: oklch(0.86 0.09 5);
-    --pastel-yellow: oklch(0.92 0.12 95);
-    --pastel-sky: oklch(0.86 0.08 230);
-    --pastel-lilac: oklch(0.84 0.09 300);
-    --pastel-mint: oklch(0.88 0.1 160);
-    --background: oklch(0.93 0.08 155);
-    --foreground: oklch(0.15 0 0);
-    --card: oklch(0.99 0.01 100);
-    --border: oklch(0.15 0 0);
-    --radius-3xl: 1.5rem;
+    /* Editorial Text Hierarchy (WCAG High Contrast Compliant) */
+    --text-primary: #1c1917;   /* Stone 900 */
+    --text-secondary: #44403c; /* Stone 700 */
+    --text-muted: #57534e;     /* Stone 600 */
+    --text-subtle: #78716c;    /* Stone 500 */
+    
+    /* Soft Frosted Glass Panels */
+    --glass-bg: rgba(255, 255, 255, 0.88);
+    --glass-border: #E2DED9;
+    --glass-shadow: 0 20px 40px -10px rgba(28, 25, 23, 0.08), 0 4px 14px -2px rgba(28, 25, 23, 0.04);
+    
+    /* Dark Glass Player (High Contrast & Clear Border) */
+    --glass-dark-bg: rgba(24, 24, 27, 0.88);
+    --glass-dark-border: rgba(255, 255, 255, 0.22);
+    --glass-dark-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+
+    /* Soft Muted Editorial Pastel Tints */
+    --pastel-pink: #F8EBEB;
+    --pastel-yellow: #FAF4E6;
+    --pastel-sky: #EBF1F5;
+    --pastel-lilac: #EFEAF5;
+    --pastel-mint: #EAF3EC;
+    
+    --radius-full: 9999px;
+    --radius-3xl: 2rem;
+    --radius-2xl: 1.5rem;
+    --radius-xl: 1rem;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-family: 'Inter', 'Pretendard', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -43,14 +103,13 @@ body {
     color: var(--foreground);
     min-height: 100vh;
     overflow-x: hidden;
+    line-height: 1.6;
 }
 
 .theme-transition {
-    transition: background-color 0.7s ease, border-color 0.4s ease, color 0.4s ease;
-}
-
-.min-h-screen {
-    min-height: 100vh;
+    transition: background-color 1s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.5s ease,
+                color 0.5s ease;
 }
 
 /* Background Utility Classes */
@@ -61,53 +120,284 @@ body {
 .bg-lilac { background-color: var(--pastel-lilac) !important; }
 .bg-mint { background-color: var(--pastel-mint) !important; }
 
-/* Neo-Brutalism Utilities */
-.shadow-brutal {
-    box-shadow: 4px 4px 0px 0px #000000 !important;
+/* 3. Soft Elevation & Micro-Interactions (Replacing Neo-Brutalist Hard Shadows) */
+.shadow-brutal, .shadow-brutal-sm, .shadow-brutal-lg {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 4px 10px -3px rgba(0, 0, 0, 0.02) !important;
 }
-.shadow-brutal-sm {
-    box-shadow: 2px 2px 0px 0px #000000 !important;
+
+.shadow-soft {
+    box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
 }
-.shadow-brutal-lg {
-    box-shadow: 6px 6px 0px 0px #000000 !important;
+
+.shadow-glass {
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08), 0 6px 16px -4px rgba(0, 0, 0, 0.03);
 }
 
 .active-press {
-    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.2s ease,
+                box-shadow 0.2s ease;
 }
+
 .active-press:active {
-    transform: translate(4px, 4px) !important;
-    box-shadow: 0px 0px 0px 0px #000000 !important;
+    transform: scale(0.97) !important;
+    opacity: 0.9;
 }
 
-.vinyl-spin {
-    animation: vinyl-spin 8s linear infinite;
-}
-@keyframes vinyl-spin {
-    to { transform: rotate(360deg); }
+.hover-lift {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.float-in {
-    animation: float-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards, float-continuous 4s ease-in-out infinite 1s;
-}
-@keyframes float-in {
-    0% {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-@keyframes float-continuous {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-    100% { transform: translateY(0); }
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.08);
 }
 
-/* Diary Book UI Styles */
-/* Diary Book UI Styles (Pure CSS) */
+/* 4. Global Navigation Header (Editorial High-Fashion Layout) */
+.app-header {
+    background: rgba(253, 251, 247, 0.92);
+    backdrop-filter: blur(16px);
+    border: 1px solid #E2DED9;
+    border-radius: var(--radius-full);
+    box-shadow: 0 8px 24px -4px rgba(28, 25, 23, 0.06);
+    transition: all 0.3s ease;
+}
+
+/* 5. Editorial Card & Component Styles (Defined Borders & Deep Soft Shadows) */
+.brutal-card, .editorial-card {
+    border-radius: var(--radius-3xl);
+    border: 1px solid #E2DED9 !important;
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 45px -10px rgba(28, 25, 23, 0.08), 0 6px 18px -3px rgba(28, 25, 23, 0.04) !important;
+    padding: 2.25rem;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid #E2DED9;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--glass-shadow);
+}
+
+.glass-player-card {
+    background: var(--glass-dark-bg) !important;
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--glass-dark-shadow) !important;
+    color: #ffffff;
+}
+
+/* 6. Refined Buttons & Inputs */
+.brutal-btn, .btn-editorial {
+    border-radius: var(--radius-full);
+    border: 1px solid #E2DED9;
+    background-color: #ffffff;
+    color: var(--text-primary);
+    padding: 0.55rem 1.25rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(28, 25, 23, 0.04);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.brutal-btn:hover, .btn-editorial:hover {
+    border-color: #78716c;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(28, 25, 23, 0.08);
+}
+
+.brutal-input, .brutal-textarea {
+    width: 100%;
+    padding: 1.1rem 1.4rem;
+    border-radius: 1.25rem;
+    border: 1px solid #E2DED9;
+    background-color: #ffffff;
+    color: var(--text-primary);
+    font-weight: 400;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    outline: none;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 2px 4px rgba(28, 25, 23, 0.02);
+}
+
+.brutal-input:focus, .brutal-textarea:focus {
+    background-color: #ffffff;
+    border-color: #44403c;
+    box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.1);
+}
+
+/* 둥근 원형 썸(Thumb) & 끝점 마감 보정 슬라이더 */
+.energy-slider-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.energy-range-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    z-index: 20;
+    outline: none;
+}
+
+.energy-range-input::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 10px;
+}
+
+.energy-range-input::-moz-range-track {
+    background: transparent;
+    height: 10px;
+}
+
+.energy-range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #292524;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    margin-top: -7px;
+}
+
+.energy-range-input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #292524;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.energy-range-input::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.energy-range-input::-moz-range-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 감성 비밀 일기장 편지지 스타일 (Lined Letter Paper) */
+.diary-letter-paper {
+    width: 100%;
+    padding: 1.5rem 1.6rem 1.5rem 1.6rem;
+    border-radius: 1.75rem;
+    border: 1px solid #E2DED9;
+    background-color: #FDFBF7; /* Warm Paper Tone */
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 33px,
+        rgba(226, 222, 217, 0.6) 33px,
+        rgba(226, 222, 217, 0.6) 34px
+    );
+    background-attachment: local;
+    line-height: 34px !important;
+    font-size: 1rem;
+    color: #292524;
+    font-family: 'MaruBuri', 'Noto Serif KR', serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    outline: none;
+    box-shadow: inset 0 2px 6px rgba(28, 25, 23, 0.02), 0 2px 8px rgba(28, 25, 23, 0.02);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    resize: none;
+}
+
+.diary-letter-paper:focus {
+    background-color: #FFFFFF;
+    border-color: #78716c;
+    box-shadow: 0 0 0 3px rgba(120, 113, 108, 0.1), 0 8px 24px -4px rgba(28, 25, 23, 0.06);
+}
+
+.diary-letter-paper::placeholder {
+    color: #a8a29e;
+    font-family: 'MaruBuri', 'Noto Serif KR', serif;
+    font-style: normal;
+    font-size: 0.92rem;
+    line-height: 34px;
+}
+
+/* 7. Ambient Dreamy Blobs */
+.blob-container {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+    transition: opacity 1s ease;
+}
+
+.blob {
+    position: absolute;
+    filter: blur(120px);
+    border-radius: 50%;
+    opacity: 0.28;
+    animation: blob-float 22s infinite alternate ease-in-out;
+}
+
+.blob-1 {
+    top: -15%; left: -10%;
+    width: 55vw; height: 55vw;
+    max-width: 600px; max-height: 600px;
+    background-color: #F8E7E7; /* Soft Rose */
+    animation-delay: 0s;
+}
+
+.blob-2 {
+    bottom: -15%; right: -10%;
+    width: 65vw; height: 65vw;
+    max-width: 700px; max-height: 700px;
+    background-color: #E8EFF5; /* Soft Sky */
+    animation-delay: -3s;
+    animation-direction: alternate-reverse;
+}
+
+.blob-3 {
+    top: 25%; left: 35%;
+    width: 45vw; height: 45vw;
+    max-width: 500px; max-height: 500px;
+    background-color: #EAF3EC; /* Soft Sage */
+    animation-delay: -6s;
+}
+
+@keyframes blob-float {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -40px) scale(1.08); }
+    66% { transform: translate(-30px, 30px) scale(0.94); }
+    100% { transform: translate(20px, 15px) scale(1.04); }
+}
+
+/* 8. Diary Book UI (Warm Fine-Art Paper Book) */
 .diary-book-wrapper {
     display: flex;
     align-items: center;
@@ -117,44 +407,49 @@ body {
     margin: 0 auto;
     position: relative;
 }
+
 .book-spread {
     display: flex;
     width: 100%;
     background: #fdfbf7;
-    border-radius: 16px;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+    border-radius: 24px;
+    border: 1px solid #E2DED9;
+    box-shadow: 0 30px 70px -15px rgba(28, 25, 23, 0.14), 0 10px 25px -5px rgba(28, 25, 23, 0.06);
     position: relative;
     overflow: hidden;
-    min-height: 460px;
-    margin: 0 60px; /* Space for nav buttons */
+    min-height: 480px;
+    margin: 0 60px;
 }
+
 .book-crease {
     position: absolute;
     left: 50%;
     top: 0;
     bottom: 0;
-    width: 40px;
-    background: linear-gradient(to right, rgba(0,0,0,0.05), rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05));
+    width: 44px;
+    background: linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.02));
     transform: translateX(-50%);
     pointer-events: none;
     z-index: 10;
 }
+
 .book-page {
     flex: 1;
-    padding: 24px 32px;
+    padding: 32px 40px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     width: 50%;
 }
+
 .left-page {
-    border-right: 1px solid rgba(0,0,0,0.1);
-}
-.right-page {
-    background: rgba(255,255,255,0.4);
+    border-right: 1px solid rgba(0,0,0,0.06);
 }
 
-/* Page Header Elements */
+.right-page {
+    background: rgba(255, 255, 255, 0.35);
+}
+
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -162,311 +457,221 @@ body {
     margin-bottom: 24px;
     z-index: 5;
 }
-.right-header {
-    margin-bottom: 24px;
-}
+
 .page-date {
-    color: #64748b;
-    font-weight: bold;
-    font-size: 14px;
-}
-.page-badge {
-    color: #94a3b8;
-    font-size: 11px;
-    font-weight: bold;
-    padding: 4px 12px;
-    border-radius: 99px;
-    border: 1px solid #cbd5e1;
-}
-.mood-weather {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #6366f1;
-    font-weight: bold;
-    font-size: 14px;
-}
-.page-pagination {
-    color: #94a3b8;
-    font-weight: bold;
-    font-size: 14px;
+    color: #78716c;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    font-weight: 500;
 }
 
-/* Canvas Image Area */
+.page-badge {
+    color: #78716c;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 3px 12px;
+    border-radius: 99px;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
 .canvas-image-container {
     position: relative;
-    flex: 1;
-    width: 100%;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
-    margin-bottom: 16px;
-    min-height: 260px;
-    background: #0f172a;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12);
+    aspect-ratio: 4/3;
+    width: 100%;
 }
+
 .canvas-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-.canvas-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.2), transparent);
-}
-.canvas-text {
-    position: absolute;
-    bottom: 24px;
-    left: 24px;
-    right: 24px;
-    color: white;
-    text-align: left;
-}
-.canvas-subtitle {
-    font-size: 10px;
-    color: rgba(255,255,255,0.7);
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-}
-.canvas-title {
-    font-size: 24px;
-    font-weight: 900;
-    margin-bottom: 4px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    color: white;
-}
-.canvas-desc {
-    font-size: 12px;
-    color: rgba(255,255,255,0.8);
+    display: block;
+    transition: transform 0.6s ease;
 }
 
-/* Poem Area */
+.canvas-image-container:hover .canvas-image {
+    transform: scale(1.02);
+}
+
+.canvas-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+}
+
+.canvas-text {
+    position: absolute;
+    bottom: 16px;
+    left: 20px;
+    right: 20px;
+    color: white;
+}
+
+.canvas-subtitle {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 2px;
+}
+
+.canvas-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #ffffff;
+    font-family: 'Playfair Display', serif;
+}
+
+.canvas-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    margin-top: 4px;
+}
+
 .poem-container {
-    flex: 1;
+    padding: 24px 16px;
+    text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    text-align: center;
+    flex: 1;
     position: relative;
-    padding: 0 24px;
 }
+
 .poem-quote {
-    color: #e2e8f0;
-    font-family: serif;
-    font-size: 60px;
-    line-height: 1;
     position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    user-select: none;
-    z-index: 1;
+    top: 0;
+    left: 10px;
+    font-size: 70px;
+    color: #e7e5e4;
+    opacity: 0.5;
+    font-family: 'Playfair Display', serif;
+    pointer-events: none;
+    line-height: 1;
 }
+
 .poem-title {
-    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive;
-    font-size: 28px;
+    font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive;
+    font-size: 26px;
     font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 28px;
-    z-index: 2;
+    color: #292524;
+    margin-bottom: 24px;
     word-break: keep-all;
     letter-spacing: 0.02em;
 }
+
 .poem-content {
-    font-family: 'Ownglyph_LeeSeoyun', 'KoPub Batang', serif, cursive;
+    font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive;
     font-size: 19px;
     line-height: 2.2;
-    color: #334155;
+    color: #44403c;
     font-weight: 400;
     white-space: pre-line;
     max-width: 380px;
     margin: 0 auto;
-    z-index: 2;
     word-break: keep-all;
     letter-spacing: 0.01em;
 }
 
-/* Page Footers */
 .page-footer {
-    font-size: 12px;
-    font-weight: bold;
-    color: #cbd5e1;
-    letter-spacing: 2px;
+    font-size: 11px;
+    color: #a8a29e;
+    letter-spacing: 0.15em;
     display: flex;
     align-items: center;
 }
-.left-footer {
-    justify-content: flex-start;
-}
-.right-footer {
-    justify-content: space-between;
-}
-.delete-btn {
-    color: #f87171;
-    font-weight: bold;
-    font-size: 12px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    transition: color 0.2s;
-    padding: 0;
-}
-.delete-btn:hover {
-    color: #ef4444;
-}
 
-/* Book Nav Buttons */
 .book-nav {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255,255,255,0.2);
-    backdrop-filter: blur(4px);
-    border: 2px solid rgba(255,255,255,0.4);
-    color: white;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(231, 229, 228, 0.8);
+    color: #57534e;
     border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    font-size: 20px;
-    font-weight: bold;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 50;
 }
-.prev-btn {
-    left: 0;
-}
-.next-btn {
-    right: 0;
-}
+
 .book-nav:hover:not(:disabled) {
-    background: rgba(255,255,255,0.3);
-    transform: translateY(-50%) scale(1.1);
+    background: #ffffff;
+    color: #1c1917;
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
 }
-.book-nav:active:not(:disabled) {
-    transform: translateY(-50%) scale(0.95);
-}
+
 .book-nav:disabled {
     opacity: 0.3;
     cursor: not-allowed;
 }
 
-.brutal-card {
-    border-radius: var(--radius-3xl, 1.5rem);
-    border: 2px solid var(--border);
-    background-color: var(--card);
-    box-shadow: 4px 4px 0px 0px #000000;
-    padding: 1.5rem;
+.prev-btn { left: 4px; }
+.next-btn { right: 4px; }
+
+/* 9. Minimalist Spinning Animations */
+.vinyl-spin {
+    animation: vinyl-spin 10s linear infinite;
+}
+@keyframes vinyl-spin {
+    to { transform: rotate(360deg); }
 }
 
-.brutal-btn {
-    border-radius: 12px;
-    border: 2px solid #000000;
-    box-shadow: 2px 2px 0px 0px #000000;
-    padding: 0.6rem 1.2rem;
-    cursor: pointer;
-    font-weight: bold;
-    transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.brutal-btn:active {
-    transform: translate(2px, 2px);
-    box-shadow: 0px 0px 0px 0px #000000;
-}
-
-.brutal-input, .brutal-textarea {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 14px;
-    border: 2px solid #000000;
-    background-color: #f8fafc;
-    color: #000000;
-    font-weight: 500;
-    font-size: 0.95rem;
-    outline: none;
-    transition: all 0.2s ease;
-}
-.brutal-input:focus, .brutal-textarea:focus {
-    background-color: #ffffff;
-    box-shadow: 2px 2px 0px 0px #000000;
-}
-
-/* Layout Utilities */
-.max-w-4xl { max-width: 900px; }
-.max-w-2xl { max-width: 700px; }
-.max-w-md { max-width: 450px; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-.my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
-
-.flex { display: flex; }
-.inline-flex { display: inline-flex; }
-.flex-wrap { flex-wrap: wrap; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.justify-center { justify-content: center; }
-.gap-2 { gap: 0.5rem; }
-.gap-3 { gap: 0.75rem; }
-.gap-4 { gap: 1rem; }
-
-.grid { display: grid; }
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
-
-.space-y-6 > * + * { margin-top: 1.5rem; }
-.margin-0 { margin: 0 !important; }
-.margin-auto { margin: 0 auto; }
-.margin-top-10 { margin-top: 10px; }
-
-.text-left { text-align: left; }
-.text-center { text-align: center; }
-
-.font-bold { font-weight: bold; }
-.font-black { font-weight: 900; }
-.text-xs { font-size: 0.75rem; }
-.text-sm { font-size: 0.875rem; }
-.text-base { font-size: 1rem; }
-.text-lg { font-size: 1.125rem; }
-.text-xl { font-size: 1.25rem; }
-.text-black { color: #000000 !important; }
-.text-slate-600 { color: #475569; }
-.text-slate-700 { color: #334155; }
-
-.p-4 { padding: 1rem; }
-.p-6 { padding: 1.5rem; }
-.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-
-.rounded-full { border-radius: 9999px; }
-.rounded-2xl { border-radius: 1rem; }
-.rounded-3xl { border-radius: 1.5rem; }
-
-.hidden { display: none !important; }
-
-/* Loaders & Modal */
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(0,0,0,0.1);
-    border-top-color: #000000;
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(0, 0, 0, 0.08);
+    border-top-color: #292524;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* 10. Toast Notification */
+#toast {
+    position: fixed;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(28, 25, 23, 0.85);
+    backdrop-filter: blur(16px);
+    color: #ffffff;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 16px 36px rgba(0,0,0,0.2);
+    z-index: 9999;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+    text-align: center;
+    animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* 11. Modal Backdrop */
 .modal {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -474,79 +679,16 @@ body {
     padding: 1rem;
 }
 
-/* Blur Blobs Background */
-.blob-container {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    overflow: hidden;
-    z-index: -1;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-}
-
-.blob {
-    position: absolute;
-    filter: blur(80px);
-    border-radius: 50%;
-    opacity: 0.6;
-    animation: blob-float 15s infinite alternate ease-in-out;
-}
-
-.blob-1 {
-    top: -10%; left: -10%;
-    width: 50vw; height: 50vw;
-    max-width: 500px; max-height: 500px;
-    background-color: var(--pastel-pink);
-    animation-delay: 0s;
-}
-
-.blob-2 {
-    bottom: -10%; right: -10%;
-    width: 60vw; height: 60vw;
-    max-width: 600px; max-height: 600px;
-    background-color: var(--pastel-sky);
-    animation-delay: -2s;
-    animation-direction: alternate-reverse;
-}
-
-.blob-3 {
-    top: 30%; left: 40%;
-    width: 40vw; height: 40vw;
-    max-width: 400px; max-height: 400px;
-    background-color: var(--pastel-yellow);
-    animation-delay: -4s;
-}
-
-@keyframes blob-float {
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(50px, -50px) scale(1.1); }
-    66% { transform: translate(-30px, 40px) scale(0.9); }
-    100% { transform: translate(20px, 20px) scale(1.05); }
+.modal-content {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(231, 229, 228, 0.8);
+    border-radius: 1.75rem;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.15);
+    padding: 2.25rem;
 }
 
 .relative-z { position: relative; z-index: 10; }
 
-/* Speech Bubble for TextArea */
-.speech-bubble {
-    border-radius: 24px 24px 24px 0 !important;
-    position: relative;
-}
-
-.animate-float-continuous {
-    animation: float-continuous 6s ease-in-out infinite;
-}
-
-#toast {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #000000;
-    color: #ffffff;
-    padding: 0.8rem 1.6rem;
-    border-radius: 9999px;
-    box-shadow: 4px 4px 0px 0px #ffffff;
-    z-index: 2000;
-    font-weight: bold;
-    text-align: center;
-}
+/* Utilities */
+.hidden { display: none !important; }

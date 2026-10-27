@@ -8,31 +8,56 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
 </head>
-<body class="bg-gray-50 text-slate-800">
-    <header class="app-header max-w-4xl mx-auto flex items-center justify-between p-4 my-6 rounded-3xl border-2 border-black bg-card shadow-brutal relative-z">
-        <div class="header-brand flex items-center gap-3" style="cursor: pointer;" onclick="location.href='/'">
-            <h1 class="logo-text text-xl font-black text-black leading-tight margin-0">
-                Andante
-            </h1>
+<body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
+    <!-- Ambient Blobs -->
+    <div id="blob-bg" class="blob-container">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Editorial Header -->
+    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
+        <div class="flex items-center gap-6">
+            <button onclick="location.href='/'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+                홈으로
+            </button>
         </div>
-        <div class="header-nav flex items-center gap-2">
-            <span id="user-info" class="user-badge font-bold text-black text-xs hidden"></span>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="icon-btn brutal-btn bg-sky text-black font-bold">마이 페이지</button>
-            <button onclick="location.href='/'" class="icon-btn brutal-btn bg-white text-black font-bold">홈으로</button>
-            <button id="logout-btn" class="icon-btn brutal-btn bg-red text-black font-bold">로그아웃</button>
+
+        <div class="text-center cursor-pointer group" onclick="location.href='/'">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+                ANDANTE
+            </h1>
+            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
+                a piece of comfort
+            </p>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider hidden"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+                마이페이지
+            </button>
+            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold">
+                로그아웃
+            </button>
         </div>
     </header>
 
-    <div style="max-width: 1200px; margin: 40px auto; padding: 20px;">
-        <h1 class="font-black text-3xl mb-8 text-center flex items-center justify-center gap-2">
-            공유 게시판
-        </h1>
+    <div class="max-w-6xl mx-auto px-6 py-6 relative-z">
+        <div class="text-center mb-12 space-y-1">
+            <span class="tracking-[0.25em] text-xs font-serif text-stone-500 uppercase">SHARED MOMENTS</span>
+            <h1 class="font-serif text-2xl md:text-3xl font-light text-stone-900 mt-1 mb-2 tracking-tight">
+                공유 갤러리
+            </h1>
+            <p class="text-stone-600 text-sm font-light">마음의 안식을 찾은 순간들을 함께 감상해보세요.</p>
+        </div>
         
-        <div id="board-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px;">
+        <div id="board-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7">
             <!-- Boards go here -->
         </div>
         
-        <div id="pagination-controls" style="display: flex; justify-content: center; gap: 10px; margin-top: 50px; flex-wrap: wrap;"></div>
+        <div id="pagination-controls" class="flex justify-center gap-2 mt-12 flex-wrap"></div>
     </div>
     
     <div id="toast" class="hidden"></div>
@@ -53,14 +78,14 @@
         const showToast = (msg) => {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
-            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full font-bold shadow-brutal-sm z-50';
+            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-medium shadow-xl z-50';
             setTimeout(() => toast.className = 'hidden', 3000);
         };
 
         const loadBoards = async (page = 1) => {
             const container = document.getElementById('board-container');
             const pageControls = document.getElementById('pagination-controls');
-            container.innerHTML = '<div class="text-center p-8" style="grid-column: 1 / -1;"><div class="spinner mx-auto mb-4 border-black border-t-black"></div><p class="font-bold">불러오는 중...</p></div>';
+            container.innerHTML = '<div class="col-span-full py-16 text-center"><div class="spinner mx-auto mb-4 border-stone-300 border-t-stone-800"></div><p class="font-serif text-xs tracking-wider text-stone-500">작품을 불러오는 중...</p></div>';
             pageControls.innerHTML = '';
 
             try {
@@ -72,44 +97,84 @@
 
                 container.innerHTML = '';
                 if (data.items.length === 0) {
-                    container.innerHTML = '<div class="brutal-card bg-white p-8 text-center font-bold text-gray-500" style="grid-column: 1 / -1;">아직 공유된 작품이 없습니다.</div>';
+                    container.innerHTML = '<div class="col-span-full bg-white rounded-3xl p-12 text-center border border-stone-300 shadow-sm"><p class="font-serif text-stone-500 text-sm">아직 공유된 작품이 없습니다.</p></div>';
                     return;
                 }
 
                 data.items.forEach(post => {
                     const card = document.createElement('div');
-                    card.className = 'brutal-card bg-white p-4 transition-transform hover:-translate-y-2 cursor-pointer flex flex-col gap-3';
-                    card.style.flexDirection = 'column'; // Ensure vertical stacking
+                    card.className = 'group bg-white rounded-3xl p-4 border border-stone-300 shadow-sm hover:border-stone-400 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between cursor-pointer';
                     card.onclick = () => { window.location.href = `/post.html?id=${post.ID}`; };
 
-                    const date = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                    const date = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
                     card.innerHTML = `
-                        <div style="border: 2px solid black; border-radius: 12px; overflow: hidden; aspect-ratio: 1/1;">
-                            <img src="${post.IMAGE_BASE64}" alt="AI Artwork" style="width: 100%; height: 100%; object-fit: cover;">
+                        <!-- 이미지 액자 -->
+                        <div class="overflow-hidden rounded-2xl aspect-[4/3] bg-stone-100 relative mb-4 border border-stone-200 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)]">
+                            <img src="${post.IMAGE_BASE64}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="${post.TITLE || 'AI Artwork'}" />
                         </div>
-                        <h3 class="font-black text-lg truncate">${post.TITLE}</h3>
-                        <div class="flex justify-between items-center text-sm font-bold">
-                            <span class="bg-yellow px-2 py-1 rounded border-2 border-black">${post.USERNAME}</span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600 font-bold border-t-2 border-dashed border-gray-300 pt-2">
-                            <span>좋아요 ${post.LIKE_COUNT || 0}</span>
-                            <span>${date}</span>
+                        
+                        <!-- 본문 메타 -->
+                        <div class="px-1 flex-1 flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-stone-900 font-serif font-medium text-base line-clamp-1 mb-2.5 tracking-tight">
+                                    ${post.TITLE || '무제'}
+                                </h3>
+                                <div class="flex items-center justify-between text-xs mb-3">
+                                    <span class="bg-stone-100 border border-stone-300 text-stone-700 px-2.5 py-0.5 rounded-full font-sans">
+                                        ${post.USERNAME}
+                                    </span>
+                                    <span class="text-stone-500 font-light">
+                                        ${date}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- 하단 액션 바 -->
+                            <div class="border-t border-stone-200 pt-3 flex items-center justify-between text-xs text-stone-600">
+                                <button class="like-btn flex items-center gap-1 hover:text-rose-500 transition-colors">
+                                    <span class="text-sm">♡</span> <span>${post.LIKE_COUNT || 0}</span>
+                                </button>
+                                <span class="font-serif tracking-wider text-stone-800 hover:text-stone-950 flex items-center gap-1 transition-colors">
+                                    감상하기 <span class="text-stone-400 group-hover:translate-x-0.5 transition-transform">→</span>
+                                </span>
+                            </div>
                         </div>
                     `;
+
+                    // Like button toggle support with stopPropagation
+                    const likeBtn = card.querySelector('.like-btn');
+                    if (likeBtn) {
+                        likeBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            try {
+                                const lRes = await fetch('/api/likes', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify({ board_id: post.ID })
+                                });
+                                const lData = await lRes.json();
+                                if (lData.liked !== undefined) {
+                                    post.LIKE_COUNT = (post.LIKE_COUNT || 0) + (lData.liked ? 1 : -1);
+                                    likeBtn.innerHTML = `<span class="text-sm ${lData.liked ? 'text-rose-500' : ''}">${lData.liked ? '♥' : '♡'}</span> <span>${post.LIKE_COUNT}</span>`;
+                                }
+                            } catch(err) {}
+                        };
+                    }
+
                     container.appendChild(card);
                 });
 
                 if (data.totalPages > 1) {
                     for (let i = 1; i <= data.totalPages; i++) {
                         const btn = document.createElement('button');
-                        btn.className = `brutal-btn px-4 py-2 ${i === data.currentPage ? 'bg-black text-white' : 'bg-white text-black'}`;
+                        btn.className = `px-4 py-2 rounded-full text-xs font-serif transition-all ${i === data.currentPage ? 'bg-stone-900 text-white font-medium shadow-sm' : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 shadow-sm'}`;
                         btn.textContent = i;
                         btn.onclick = () => loadBoards(i);
                         pageControls.appendChild(btn);
                     }
                 }
             } catch (e) {
-                container.innerHTML = `<div class="col-span-full brutal-card bg-red-100 p-8 text-center font-bold text-red-600">${e.message}</div>`;
+                container.innerHTML = `<div class="col-span-full bg-rose-50 border border-rose-200 rounded-3xl p-8 text-center font-serif text-rose-700 text-sm">${e.message}</div>`;
             }
         };
 

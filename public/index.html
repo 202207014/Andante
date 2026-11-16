@@ -9,13 +9,21 @@
             window.location.replace('/login.html');
         }
     </script>
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
     <script src="lib/theme-mapping.js?v=7"></script>
-    <script src="components/healing.js?v=7"></script>
+    <script src="components/healing.js?v=10"></script>
 </head>
-<body class="theme-transition min-h-screen text-stone-800">
+<body id="main-bg-wrapper" class="theme-transition min-h-screen text-stone-800">
+    
+    <!-- 듀얼 크로스페이드 배경 컨테이너 (고정 백그라운드) -->
+    <div id="ambient-crossfade-bg" class="fixed inset-0 -z-50 overflow-hidden pointer-events-none select-none">
+      <!-- 하부 레이어 (Back Layer) -->
+      <div id="bg-layer-back" class="absolute inset-0 transition-opacity duration-1000 ease-in-out"></div>
+      <!-- 상부 레이어 (Front Layer: 투명도 조절로 크로스페이드 실행) -->
+      <div id="bg-layer-front" class="absolute inset-0 transition-opacity duration-1000 ease-in-out opacity-0"></div>
+    </div>
     
     <!-- Ambient Dreamy Blobs Background -->
     <div id="blob-bg" class="blob-container">
@@ -25,29 +33,29 @@
     </div>
 
     <!-- 1. Global Navigation Header (Editorial High-Fashion Layout, EVE HEALING Style) -->
-    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
+    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-8 py-5 my-6 relative-z">
         <!-- Left Nav Links -->
-        <div class="flex items-center gap-6">
-            <button id="diary-btn" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden">
+        <div class="flex items-center gap-4 sm:gap-6 z-10">
+            <button id="diary-btn" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden whitespace-nowrap">
                 📓 일기장
             </button>
-            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
                 공유 갤러리
             </button>
         </div>
 
-        <!-- Center Brand Logo (Reference EVE HEALING Layout) -->
-        <div class="text-center cursor-pointer group" onclick="location.href='/'">
+        <!-- Center Brand Logo (Absolute Center for Perfect Geometric Alignment) -->
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto" onclick="location.href='/'">
             <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
                 ANDANTE
             </h1>
-            <p id="theme-concept-text" class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
+            <p id="theme-concept-text" class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium whitespace-nowrap">
                 a piece of comfort
             </p>
         </div>
 
         <!-- Right Nav Links & User Status -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-4 z-10">
             <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider"></span>
             <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden">
                 마이페이지
@@ -112,7 +120,7 @@
                         </div>
                         <input 
                             type="range" 
-                            id="energy-slider"
+                            id="energy-battery-slider"
                             min="0" max="100" 
                             value="100"
                             class="energy-range-input"
@@ -195,8 +203,16 @@
                <div class="w-20 hidden sm:block"></div>
             </div>
 
-            <!-- Artwork Canvas Slot -->
-            <div id="canvas-card-slot" class="max-w-2xl mx-auto"></div>
+            <!-- Artwork Canvas Slot with Emotion Backdrop Glow -->
+            <div class="relative max-w-2xl mx-auto my-6">
+                <!-- 액자 뒤 파스텔 앰비언트 글로우 -->
+                <div id="canvas-backdrop-glow" 
+                     class="absolute -inset-4 rounded-[2.5rem] opacity-70 blur-2xl transition-all duration-1000 -z-10 pointer-events-none"
+                     style="background-color: #D4E5D6;"></div>
+                
+                <!-- 기존 캔버스 액자 본체 슬롯 -->
+                <div id="canvas-card-slot" class="relative z-10"></div>
+            </div>
 
             <!-- Floating Frosted Glass Audio Player Slot -->
             <div id="music-sticker-slot" class="max-w-2xl mx-auto"></div>
@@ -288,7 +304,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=25"></script>
+    <script src="app.js?v=31"></script>
 
     <!-- Asymptotic Loader Modal (Frosted Glass Editorial Refinement) -->
     <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px);">

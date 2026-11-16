@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>공유 게시판 - 안단테 (Andante)</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=9">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="modal.js"></script>
 </head>
@@ -16,29 +16,32 @@
         <div class="blob blob-3"></div>
     </div>
 
-    <!-- Editorial Header -->
-    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
-        <div class="flex items-center gap-6">
-            <button onclick="location.href='/'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+    <!-- Editorial Header (Perfect Absolute Center Alignment) -->
+    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-8 py-5 my-6 relative-z">
+        <!-- Left Nav Links -->
+        <div class="flex items-center gap-4 sm:gap-6 z-10">
+            <button onclick="location.href='/'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
                 홈으로
             </button>
         </div>
 
-        <div class="text-center cursor-pointer group" onclick="location.href='/'">
+        <!-- Center Brand Logo (Absolute Center for Perfect Geometric Alignment) -->
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto" onclick="location.href='/'">
             <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
                 ANDANTE
             </h1>
-            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
+            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium whitespace-nowrap">
                 a piece of comfort
             </p>
         </div>
 
-        <div class="flex items-center gap-4">
-            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider hidden"></span>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold">
+        <!-- Right Nav Links & User Status -->
+        <div class="flex items-center gap-3 sm:gap-4 z-10">
+            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider hidden sm:inline-block whitespace-nowrap"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
                 마이페이지
             </button>
-            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold">
+            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold whitespace-nowrap">
                 로그아웃
             </button>
         </div>

@@ -151,13 +151,20 @@ window.stopAllAudios = function() {
         window.GlobalAudio.stopAll();
     }
 };
+
+// 🎵 전역 단일 Audio 인스턴스 싱글톤 참조 (Single Source of Truth)
+function getActiveAudioInstance() {
+    return window.currentHealingAudio || window.jamendoAudio || document.querySelector('#diary-music-player-container audio') || null;
+}
+window.getActiveAudioInstance = getActiveAudioInstance;
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Initial Theme & Environment Setup
     const currentHour = new Date().getHours();
     const initialTheme = typeof resolveThemeByEnv === 'function' ? resolveThemeByEnv(currentHour, 'Sunny') : { background: 'linear-gradient(135deg, #F4F8F4 0%, #E8F2E8 50%, #DEF0DF 100%)', concept: '느리게 흐르는 민트빛 안단테' };
     
     document.body.classList.remove('bg-[#FAF8F5]');
-    document.body.style.background = initialTheme.background;
+    // Dual crossfade overlay drives background on Step 1
+    document.body.style.background = 'transparent';
     const conceptEl = document.getElementById('theme-concept-text');
     if (conceptEl) conceptEl.textContent = initialTheme.concept;
 
@@ -187,7 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (theme) {
             document.body.className = document.body.className.replace(/\bbg-\w+\b/g, '').replace('bg-[#FAF8F5]', '');
-            document.body.style.background = theme.background;
+            if (typeof currentWizardStep !== 'undefined' && currentWizardStep === 1 && typeof updateAdaptiveBackground === 'function') {
+                updateAdaptiveBackground();
+            } else {
+                document.body.style.background = theme.background;
+            }
             if (conceptEl) conceptEl.textContent = theme.concept;
         }
 
@@ -360,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 jamendoTrackInfo = data.track;
                 window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
                 window.jamendoAudio.volume = 0.8;
+                window.currentHealingAudio = window.jamendoAudio;
                 attachAudioProgressSync(window.jamendoAudio);
                 window.jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
             } else {
@@ -416,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
             window.jamendoAudio.volume = 0.5;
+            window.currentHealingAudio = window.jamendoAudio;
         }
     }
 
@@ -602,11 +615,96 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     ];
 
+    // =========================================================================
+    // 신규 감정·배터리 컬러 팔레트 & 동적 배경 시스템 (Contrast 강화)
+    // =========================================================================
+
+    // 1. 배터리 단독 구간별 그라데이션 (대비 강화)
+    function getBatteryOnlyGradient(battery) {
+      if (battery <= 25) return 'linear-gradient(135deg, #D0D3E3 0%, #BDC3D4 100%)';
+      if (battery <= 50) return 'linear-gradient(135deg, #EEDCCB 0%, #E1CEBD 100%)';
+      if (battery <= 75) return 'linear-gradient(135deg, #D4E5D6 0%, #BFD9C1 100%)';
+      return 'linear-gradient(135deg, #F8CAD3 0%, #F2B2C0 100%)';
+    }
+
+    // 2. 감정 대분류 6종 결합 팔레트
+    const MOOD_GRADIENT_BASES = {
+      LOVE:     { high: ['#F8CAD3', '#F2B2C0'], low: ['#E6BAC3', '#D6A6B1'] },
+      DOWN:     { high: ['#C5D5E8', '#ADC4DC'], low: ['#D0D3E3', '#BDC3D4'] },
+      OVERLOAD: { high: ['#F5D8CF', '#E8C2B6'], low: ['#EEDCCB', '#E1CEBD'] },
+      DEPLETED: { high: ['#EADBC9', '#DCBFA4'], low: ['#D9D3CE', '#C7BFB9'] },
+      CALM:     { high: ['#D4E5D6', '#BFD9C1'], low: ['#CCD6CD', '#B5C4B7'] },
+      ACTIVE:   { high: ['#BEE4ED', '#A4D5E0'], low: ['#CFDFE3', '#BACCD1'] }
+    };
+
+    let isCrossfadeFrontActive = false;
+    let currentAppliedGradient = '';
+
+    // 3. 듀얼 오버레이 크로스페이드 배경 갱신 실행 함수 (Dual Overlay Cross-fade, 60fps)
+    function updateAdaptiveBackground() {
+      const slider = document.getElementById('energy-battery-slider') || document.querySelector('input[type="range"]');
+      const battery = slider ? parseInt(slider.value, 10) : 100;
+      const category = window.currentSelectedCategory || null;
+      let gradientStr = '';
+
+      if (category && MOOD_GRADIENT_BASES[category]) {
+        const palette = battery >= 50 ? MOOD_GRADIENT_BASES[category].high : MOOD_GRADIENT_BASES[category].low;
+        gradientStr = `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 100%)`;
+      } else {
+        gradientStr = getBatteryOnlyGradient(battery);
+      }
+
+      if (gradientStr === currentAppliedGradient) return;
+      currentAppliedGradient = gradientStr;
+
+      const bgBack = document.getElementById('bg-layer-back');
+      const bgFront = document.getElementById('bg-layer-front');
+
+      if (bgBack && bgFront) {
+        // Ensure body background is transparent so dual layers are fully visible
+        if (document.body.style.background && document.body.style.background !== 'transparent') {
+          document.body.style.background = 'transparent';
+        }
+
+        if (!bgBack.style.backgroundImage) {
+          // 최초 렌더링 시 하부 레이어에 즉시 주입 (깜빡임 방지)
+          bgBack.style.backgroundImage = gradientStr;
+          bgBack.style.opacity = '1';
+          bgFront.style.opacity = '0';
+          isCrossfadeFrontActive = false;
+          return;
+        }
+
+        // 듀얼 레이어 핑퐁 크로스페이드 (Cross-fade Ping-Pong)
+        if (!isCrossfadeFrontActive) {
+          // Front 레이어에 새 그라데이션 주입 후 Fade-In (1000ms)
+          bgFront.style.backgroundImage = gradientStr;
+          bgFront.style.opacity = '1';
+          isCrossfadeFrontActive = true;
+        } else {
+          // Back 레이어에 새 그라데이션 주입 후 Front 레이어 Fade-Out (1000ms)
+          bgBack.style.backgroundImage = gradientStr;
+          bgFront.style.opacity = '0';
+          isCrossfadeFrontActive = false;
+        }
+      } else {
+        // Fallback for single layer
+        const bgTarget = document.getElementById('main-bg-wrapper') || document.body;
+        bgTarget.style.backgroundImage = gradientStr;
+        bgTarget.style.transition = 'background-image 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+      }
+    }
+
+    window.getBatteryOnlyGradient = getBatteryOnlyGradient;
+    window.MOOD_GRADIENT_BASES = MOOD_GRADIENT_BASES;
+    window.updateAdaptiveBackground = updateAdaptiveBackground;
+
     let energyLevel = 100;
     let expandedCategory = 'LOVE';
+    window.currentSelectedCategory = 'LOVE';
 
     function renderAccordion() {
-        const energySlider = document.getElementById('energy-slider');
+        const energySlider = document.getElementById('energy-battery-slider') || document.getElementById('energy-slider') || document.querySelector('input[type="range"]');
         const energyFill = document.getElementById('energy-fill');
         const energyText = document.getElementById('energy-percentage-text');
         const accordionContainer = document.getElementById('mood-accordion-container');
@@ -641,9 +739,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     expandedCategory = 'ACTIVE';
                 }
             }
+            window.currentSelectedCategory = expandedCategory;
+            updateAdaptiveBackground();
             renderAccordionHTML(accordionContainer);
         };
 
+        window.currentSelectedCategory = expandedCategory;
+        updateAdaptiveBackground();
         renderAccordionHTML(accordionContainer);
     }
 
@@ -693,6 +795,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.onclick = (e) => {
                 e.preventDefault();
                 expandedCategory = isExpanded ? null : category.id;
+                window.currentSelectedCategory = expandedCategory;
+                updateAdaptiveBackground();
                 renderAccordionHTML(container);
             };
             card.appendChild(btn);
@@ -720,6 +824,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         selectedMood = sit.label;
                         selectedSafeTag = sit.jamendoSafeTag;
                         selectedThemeColor = sit.themeColor;
+                        window.currentSelectedCategory = category.id;
+                        updateAdaptiveBackground();
                         renderAccordionHTML(container);
                     };
                     chipScroll.appendChild(tagBtn);
@@ -765,7 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loader.classList.add('hidden');
         }
 
-        if (currentWizardStep === 1 && s1) s1.classList.remove('hidden');
+        if (currentWizardStep === 1 && s1) { s1.classList.remove('hidden'); updateAdaptiveBackground(); }
         if (currentWizardStep === 2 && s2) s2.classList.remove('hidden');
         if (currentWizardStep === 3 && s3) s3.classList.remove('hidden');
 
@@ -784,6 +890,26 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (currentWizardStep === 3 && currentAnalysis) {
             const musicData = currentAnalysis.structuredData || {};
+
+            // 6종 감정별 파스텔 매핑 토큰 (Glow & Accent Colors)
+            const MOOD_PASTEL_COLORS = {
+                LOVE:     '#F8CAD3', // 로즈 핑크
+                DOWN:     '#C5D5E8', // 스카이 라벤더
+                OVERLOAD: '#F5D8CF', // 웜 피치
+                DEPLETED: '#EADBC9', // 웜 오렌지 베이지
+                CALM:     '#D4E5D6', // 세이지 민트
+                ACTIVE:   '#BEE4ED'  // 아쿠아 블루
+            };
+            const currentCategory = (currentAnalysis && currentAnalysis.category) || window.currentSelectedCategory || 'CALM';
+            const moodColor = MOOD_PASTEL_COLORS[currentCategory] || '#D4E5D6';
+
+            // 1. 캔버스 액자 뒤 감정별 파스텔 글로우 백드롭 적용
+            const glowEl = document.getElementById('canvas-backdrop-glow');
+            if (glowEl) {
+                glowEl.style.backgroundColor = moodColor;
+            }
+
+            // 2. 음악 플레이어의 보더, 프로그레스 바, 배지 컬러 동적 업데이트
             const musicSlot = document.getElementById('music-sticker-slot');
             if (musicSlot) {
                 const rawTempo = musicData.tempoBpm || '70';
@@ -798,7 +924,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         musicData.primaryEmotion || '평온함',
                         formattedTempo
                     ],
-                    isPlaying: isPlayingMusic
+                    isPlaying: isPlayingMusic,
+                    themeColor: moodColor
                 });
                 const stickerBtn = musicSlot.querySelector('#sticker-play-btn');
                 if (stickerBtn) {
@@ -820,21 +947,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const canvasSlot = document.getElementById('canvas-card-slot');
             if (canvasSlot) {
+                const targetWeather = currentAnalysis?.weather || currentWeatherVal;
                 if (generatedImageUrl) {
                     canvasSlot.innerHTML = window.AndanteComponents.renderAICanvasCard({
                         imageUrl: generatedImageUrl,
-                        isLoading: false
+                        isLoading: false,
+                        weather: targetWeather
                     });
                 } else {
                     canvasSlot.innerHTML = `
-                    <div class="editorial-card text-center py-14 px-8 flex flex-col items-center gap-6" style="margin: 0 auto; max-width: 640px;">
+                    <div class="editorial-card text-center py-14 px-8 flex flex-col items-center gap-6" style="margin: 0 auto; max-width: 640px; background-color: #ffffff; border-radius: 1.5rem; border: 1px solid #E2DED9; box-shadow: 0 16px 36px -10px rgba(28, 25, 23, 0.06);">
                         <div style="width: 52px; height: 52px; border-radius: 50%; background: #f5f5f4; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #78716c;">
                             🎨
                         </div>
                         <div>
                             <h3 class="font-normal font-editorial-serif text-stone-800 text-xl mb-2">나만의 힐링 감성 캔버스 그리기</h3>
-                            <p class="text-xs text-stone-500 font-light max-w-sm mx-auto leading-relaxed">
-                                AI가 분석된 기분과 시적 어조를 바탕으로 16:9 와이드 명화 화폭을 제작합니다.
+                            <p class="text-xs text-stone-500 font-light max-w-sm mx-auto leading-relaxed font-editorial-serif">
+                                AI가 분석된 감정과 실시간 날씨(${targetWeather || '주변 환경'})를 담아 16:9 와이드 명화 화폭을 제작합니다.
                             </p>
                         </div>
                         <button id="draw-image-btn" class="active-press hover-lift" style="padding: 14px 32px; border-radius: 9999px; border: none; background: #1c1917; color: white; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; box-shadow: 0 8px 20px -4px rgba(0,0,0,0.25);">
@@ -847,19 +976,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // 3. 에디토리얼 글래스 감성에 맞게 리스타일링된 액션 버튼 (텍스트 줄바꿈 방지 및 한 줄 시원한 출력)
             const finalSlot = document.getElementById('final-actions-slot');
             if (finalSlot && generatedImageUrl) {
                 finalSlot.innerHTML = `
-                    <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; justify-content: center; max-width: 640px; margin-left: auto; margin-right: auto;">
-                        <button id="start-healing-btn" class="active-press hover-lift start-healing-btn" style="flex: 1; min-width: 180px; padding: 14px 28px; border-radius: 9999px; border: none; background: #065f46; color: white; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; box-shadow: 0 10px 25px -4px rgba(6,95,70,0.4);">
-                            🌿 힐링 시작 (전체화면)
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5 mt-8 max-w-2xl mx-auto w-full px-2">
+                        <button id="start-healing-btn" class="active-press hover-lift start-healing-btn w-full sm:w-auto px-7 py-3.5 rounded-full border border-stone-800/80 bg-stone-900 text-white font-medium text-sm tracking-wider uppercase shadow-lg shadow-stone-900/10 transition-all duration-300 flex items-center justify-center gap-2.5 whitespace-nowrap flex-shrink-0 cursor-pointer">
+                            <span style="font-size: 13px; color: ${moodColor}; filter: drop-shadow(0 0 6px ${moodColor});">✦</span>
+                            <span class="font-editorial-serif tracking-wider whitespace-nowrap">힐링 모드 시작 (전체화면)</span>
                         </button>
-                        <button id="final-save-btn" class="active-press hover-lift" style="flex: 1; min-width: 150px; padding: 14px 28px; border-radius: 9999px; border: 1px solid #e7e5e4; background: #ffffff; color: #292524; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                            💾 일기장 저장
-                        </button>
-                        <button id="final-share-btn" class="active-press hover-lift" style="flex: 1; min-width: 150px; padding: 14px 28px; border-radius: 9999px; border: 1px solid #e7e5e4; background: #ffffff; color: #292524; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.1em; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                            🌐 갤러리 공유
-                        </button>
+                        <div class="flex items-center gap-3 w-full sm:w-auto justify-center">
+                            <button id="final-save-btn" class="active-press hover-lift flex-1 sm:flex-none px-6 py-3.5 rounded-full border border-stone-200/90 bg-white/90 backdrop-blur-md text-stone-800 font-medium text-sm tracking-wide shadow-sm hover:border-stone-400 transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer">
+                                <span>💾</span> <span class="font-editorial-serif">일기장 저장</span>
+                            </button>
+                            <button id="final-share-btn" class="active-press hover-lift flex-1 sm:flex-none px-6 py-3.5 rounded-full border border-stone-200/90 bg-white/90 backdrop-blur-md text-stone-800 font-medium text-sm tracking-wide shadow-sm hover:border-stone-400 transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer">
+                                <span>🌐</span> <span class="font-editorial-serif">갤러리 공유</span>
+                            </button>
+                        </div>
                     </div>
                 `;
                 finalSlot.querySelector('#final-save-btn').onclick = saveToDiary;
@@ -1049,13 +1182,15 @@ document.addEventListener('DOMContentLoaded', () => {
     async function generateImage() {
         if (!currentAnalysis) return;
         const promptStr = currentAnalysis.imagePrompt || currentAnalysis.english_prompt || 'artistic tranquil painting';
+        const weatherVal = currentAnalysis.weather || currentWeatherVal || 'Clear';
 
         // Show Loading inside Canvas Slot
         const canvasSlot = document.getElementById('canvas-card-slot');
         if (canvasSlot) {
             canvasSlot.innerHTML = window.AndanteComponents.renderAICanvasCard({
                 imageUrl: null,
-                isLoading: true
+                isLoading: true,
+                weather: weatherVal
             });
         }
 
@@ -1066,7 +1201,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ prompt: promptStr, userGender: currentAnalysis.userGender || sessionStorage.getItem('authGender') || '남성',
+                body: JSON.stringify({ 
+                    prompt: promptStr, 
+                    weather: weatherVal,
+                    userGender: currentAnalysis.userGender || sessionStorage.getItem('authGender') || '남성',
                     primaryCategory: currentAnalysis.primaryCategory 
                 })
             });
@@ -1557,24 +1695,27 @@ window.openHealingFullscreen = async function(btn) {
 
     isHealingModeActive = true;
 
-    // 3. 오디오 재생 제어
-    window.stopAllAudios();
-    const audioPlayer = document.querySelector('#diary-music-player-container audio') || document.querySelector('audio');
-    if (audioPlayer && audioPlayer.src) {
-        audioPlayer.currentTime = 0;
-        try {
-            await audioPlayer.play();
-        } catch (err) {
-            console.log('Audio autoplay prevented by browser', err);
+    // 3. 🎵 싱글톤 오디오 상태 관리 및 전체화면 연동 (Seamless Continuity & Zero Overlap)
+    const audio = getActiveAudioInstance();
+    if (audio) {
+        // 백그라운드 BGM(자연의 소리)은 정지하여 힐링 트랙에 집중
+        if (typeof pauseBGM === 'function') {
+            pauseBGM();
         }
-    } else if (window.jamendoAudio) {
-        window.jamendoAudio.currentTime = 0;
-        try {
-            await window.jamendoAudio.play();
+
+        if (audio.paused) {
+            // 멈춰있는 상태였다면 현재 위치에서 자연스럽게 재생 시작 (중복 Audio 생성 없음)
+            try {
+                await audio.play();
+                if (typeof isPlayingMusic !== 'undefined') isPlayingMusic = true;
+                if (typeof updateWizardView === 'function') updateWizardView();
+            } catch (err) {
+                console.warn('Audio autoplay blocked, requires user interaction:', err);
+            }
+        } else {
+            // 이미 재생 중이라면 상태와 currentTime을 그대로 유지 (끊김 및 재시작 방지)
+            console.log('Audio is already playing seamlessly at:', audio.currentTime);
             if (typeof isPlayingMusic !== 'undefined') isPlayingMusic = true;
-            if (typeof updateWizardView === 'function') updateWizardView();
-        } catch (err) {
-            console.log('Audio autoplay prevented by browser', err);
         }
     }
 
@@ -1611,6 +1752,12 @@ window.openHealingFullscreen = async function(btn) {
 
     resetHealingCursorTimer();
 };
+
+// 전체화면 함수 별칭 매핑 (호환성 보장)
+window.startFullscreenHealing = function(btn) { return window.openHealingFullscreen(btn); };
+window.openFullscreenHealing = function(btn) { return window.openHealingFullscreen(btn); };
+window.closeFullscreenHealing = function() { return window.exitHealingFullscreen(); };
+window.exitFullscreenHealing = function() { return window.exitHealingFullscreen(); };
 
 window.exitHealingFullscreen = function() {
     if (!isHealingModeActive) return;

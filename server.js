@@ -393,6 +393,26 @@ app.get('/api/freesound', async (req, res) => {
     }
 });
 
+// Helper: Map real-time weather condition to artistic therapeutic scenery atmosphere
+function getWeatherAtmospherePrompt(weather) {
+    if (!weather) return '';
+    const w = String(weather).toLowerCase().trim();
+    if (w.includes('rain') || w.includes('drizzle') || w.includes('비')) {
+        return 'gentle rain ripples, soft misty rain ambience, reflective wet surfaces, calming soothing petrichor mood, soft dewy droplets';
+    } else if (w.includes('snow') || w.includes('눈')) {
+        return 'peaceful soft winter snowfall, quiet snow-covered vista, crisp serene air, gentle snowflakes drifting slowly';
+    } else if (w.includes('thunder') || w.includes('storm') || w.includes('뇌우')) {
+        return 'dramatic yet distant soft storm clouds with warm safe shelter light, poetic rain showers';
+    } else if (w.includes('cloud') || w.includes('overcast') || w.includes('흐림') || w.includes('구름')) {
+        return 'soft diffused cloudscape, gentle overcast ambient lighting, moody peaceful contemplation, cinematic soft sky';
+    } else if (w.includes('mist') || w.includes('fog') || w.includes('haze') || w.includes('안개')) {
+        return 'ethereal dreamy mist rising peacefully, soft atmospheric haze, quiet serene distance';
+    } else if (w.includes('clear') || w.includes('sunny') || w.includes('맑음')) {
+        return 'warm golden sunlight, luminous open clear sky, gentle sunbeams filtering through, uplifting radiant warmth';
+    }
+    return `${weather} atmosphere, harmonious natural ambient lighting`;
+}
+
 app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
     try {
         const { story, situationTag, primaryCategory, batteryLevel, weather = '맑음', userProfile } = req.body;
@@ -405,8 +425,10 @@ app.post('/api/ai/analyze', authenticateToken, async (req, res) => {
 User Profile: ${age}-year-old ${genderKor} (${gender})
 Emotion Context: "${situationTag || '일상'}" (Battery: ${batteryLevel ?? 100}%)
 User Story: "${story || ''}"
+Ambient Real-time Weather: "${weather}"
 
 [Crucial Image Direction: EXPANSIVE SCENERY & THERAPEUTIC LANDSCAPE]
+- Weather Integration: Seamlessly harmonize the scene with the user's ambient weather ("${weather}"). For example, if rainy/drizzle, depict gentle rain ripples or cozy rain-kissed atmosphere; if snowy, soft peaceful snowfall; if cloudy/overcast, gentle diffused cloudscape; if clear/sunny, warm golden sunlight.
 - NEVER focus on a person's body, back, or shoulders. The person must NOT dominate the frame.
 - Primary Subject: A vast, peaceful, breathtaking landscape or cozy architectural corner that gives an instant sense of breathing room and deep relaxation.
   - Examples: A tranquil misty lake with mountain reflections, a golden sunset spilling across a vast calm ocean, a wide quiet city skyline bathed in twilight, a sunlit forest trail with soft sunbeams.
@@ -433,6 +455,7 @@ Return JSON only:
         const result = await model.generateContent(systemPrompt);
         const responseText = result.response.text();
         const parsed = JSON.parse(responseText);
+        parsed.weather = weather;
 
         res.json(parsed);
     } catch (err) {
@@ -445,14 +468,17 @@ Return JSON only:
 
 app.post('/api/ai/image', authenticateToken, async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, weather } = req.body;
         if (!prompt) return res.status(400).json({ error: '프롬프트가 필요합니다.' });
 
         const key = process.env.GEMINI_API_KEY;
         if (!key) return res.status(500).json({ error: 'GEMINI_API_KEY가 설정되지 않았습니다.' });
 
-        // 풍경 및 감성 치유 분위기 보강
-        const sanitizedPrompt = `Breathtaking ultra-wide panoramic landscape, atmospheric environmental view, ${prompt.trim()}, warm soothing color palette, comforting ambient glow, soft peaceful lighting, fine art digital painting, no close-ups, no large human figures, no front-facing portrait, no text, no watermark`;
+        const weatherAtmosphere = getWeatherAtmospherePrompt(weather);
+        const weatherClause = weatherAtmosphere ? `weather atmosphere of ${weatherAtmosphere}, ` : '';
+
+        // 풍경 및 감성 치유 분위기 보강 (실시간 날씨 데이터 적극 반영)
+        const sanitizedPrompt = `Breathtaking ultra-wide panoramic landscape, atmospheric environmental view, ${weatherClause}${prompt.trim()}, warm soothing color palette, comforting ambient glow, soft peaceful lighting, fine art digital painting, no close-ups, no large human figures, no front-facing portrait, no text, no watermark`;
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${key}`;
 

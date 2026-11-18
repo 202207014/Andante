@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안단테 (Andante) - 마이 페이지</title>
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="modal.js"></script>
+    <script src="modal.js?v=2"></script>
 </head>
 <body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
     <!-- Ambient Blobs -->
@@ -100,10 +100,25 @@
                 </div>
             </div>
 
-            <div class="input-group mb-8">
-                <label for="profile-password" class="block text-sm font-bold mb-2">새 비밀번호 (선택)</label>
-                <input type="password" id="profile-password" placeholder="변경할 경우에만 입력하세요" class="brutal-input w-full">
-                <p class="text-xs text-gray-500 mt-1">비밀번호를 변경하고 싶지 않다면 비워두세요.</p>
+            <div class="border-t border-stone-200/80 pt-6 mt-6 mb-8 space-y-4">
+                <h3 class="text-sm font-bold text-stone-900">비밀번호 변경 (선택)</h3>
+                
+                <div class="input-group">
+                    <label for="profile-current-password" class="block text-xs font-semibold text-stone-700 mb-1">현재 비밀번호</label>
+                    <input type="password" id="profile-current-password" placeholder="현재 비밀번호를 입력하세요" class="brutal-input w-full">
+                </div>
+
+                <div class="input-group">
+                    <label for="profile-new-password" class="block text-xs font-semibold text-stone-700 mb-1">새 비밀번호</label>
+                    <input type="password" id="profile-new-password" placeholder="8자 이상 입력하세요" class="brutal-input w-full">
+                    <p id="profile-new-password-msg" class="text-xs text-rose-600 mt-1 hidden font-medium">비밀번호는 8자 이상이어야 해요.</p>
+                </div>
+
+                <div class="input-group">
+                    <label for="profile-confirm-password" class="block text-xs font-semibold text-stone-700 mb-1">새 비밀번호 확인</label>
+                    <input type="password" id="profile-confirm-password" placeholder="새 비밀번호를 다시 입력하세요" class="brutal-input w-full">
+                    <p id="profile-confirm-password-msg" class="text-xs text-rose-600 mt-1 hidden font-medium">새 비밀번호가 일치하지 않아요.</p>
+                </div>
             </div>
 
             <div class="flex justify-between gap-4">
@@ -173,40 +188,75 @@
                 const name = document.getElementById('profile-name').value.trim();
                 const age = document.getElementById('profile-age').value.trim();
                 const mbti = document.getElementById('profile-mbti').value;
-                const password = document.getElementById('profile-password').value.trim();
                 const genderEl = document.querySelector('input[name="profile-gender"]:checked');
                 
+                const currentPassword = document.getElementById('profile-current-password').value.trim();
+                const newPassword = document.getElementById('profile-new-password').value.trim();
+                const confirmPassword = document.getElementById('profile-confirm-password').value.trim();
+
+                const newPwMsg = document.getElementById('profile-new-password-msg');
+                const confirmPwMsg = document.getElementById('profile-confirm-password-msg');
+                if (newPwMsg) newPwMsg.classList.add('hidden');
+                if (confirmPwMsg) confirmPwMsg.classList.add('hidden');
+
                 if (!name || !age || !genderEl) {
                     return showToast('이름, 나이, 성별을 모두 입력해주세요.');
                 }
                 const gender = genderEl.value;
 
+                let isPasswordChange = false;
+                if (currentPassword || newPassword || confirmPassword) {
+                    if (!currentPassword) {
+                        return showToast('현재 비밀번호를 입력해주세요.');
+                    }
+                    if (newPassword.length < 8) {
+                        if (newPwMsg) newPwMsg.classList.remove('hidden');
+                        return showToast('비밀번호는 8자 이상이어야 해요.');
+                    }
+                    if (newPassword !== confirmPassword) {
+                        if (confirmPwMsg) confirmPwMsg.classList.remove('hidden');
+                        return showToast('새 비밀번호가 일치하지 않아요.');
+                    }
+                    isPasswordChange = true;
+                }
+
                 try {
+                    const reqBody = { name, gender, age, mbti };
+                    if (isPasswordChange) {
+                        reqBody.currentPassword = currentPassword;
+                        reqBody.newPassword = newPassword;
+                    }
+
                     const res = await fetch('/api/auth/me', {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${authToken}`
                         },
-                        body: JSON.stringify({ name, gender, age, mbti, password })
+                        body: JSON.stringify(reqBody)
                     });
                     const data = await res.json();
                     
                     if (!res.ok) throw new Error(data.error);
-                    
-                    showToast('정보가 성공적으로 수정되었습니다.');
                     
                     sessionStorage.setItem('authName', name);
                     sessionStorage.setItem('authGender', gender);
                     sessionStorage.setItem('authAge', age);
                     sessionStorage.setItem('authMbti', mbti);
                     
-                    if (password) {
+                    if (isPasswordChange) {
+                        sessionStorage.removeItem('showPwSecurityNotice');
+                        const currentUName = sessionStorage.getItem('authUsername');
+                        if (currentUName) {
+                            localStorage.setItem('pw_updated_' + currentUName, 'true');
+                        }
                         showToast('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
                         setTimeout(() => {
                             ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
                             window.location.href = '/login.html';
-                        }, 2000);
+                        }, 1500);
+                    } else {
+                        showToast('정보가 성공적으로 수정되었습니다.');
                     }
                 } catch (err) {
                     showToast(err.message);

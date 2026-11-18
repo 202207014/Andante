@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.body.classList.remove('bg-[#FAF8F5]');
     // Dual crossfade overlay drives background on Step 1
-    document.body.style.background = 'transparent';
+    // body background handled via var(--bg)
     const conceptEl = document.getElementById('theme-concept-text');
     if (conceptEl) conceptEl.textContent = initialTheme.concept;
 
@@ -191,13 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (weatherMain.includes('Mist') || weatherMain.includes('Fog')) emoji = '🌫️';
 
         if (weatherBadge) weatherBadge.innerHTML = emoji;
+        if (typeof syncWeatherState === 'function') {
+            syncWeatherState(weatherMain);
+        }
         
         if (theme) {
             document.body.className = document.body.className.replace(/\bbg-\w+\b/g, '').replace('bg-[#FAF8F5]', '');
             if (typeof currentWizardStep !== 'undefined' && currentWizardStep === 1 && typeof updateAdaptiveBackground === 'function') {
                 updateAdaptiveBackground();
             } else {
-                document.body.style.background = theme.background;
+                /* background handled solely by applyEmotionPalette via --bg */
             }
             if (conceptEl) conceptEl.textContent = theme.concept;
         }
@@ -309,20 +312,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const VALID_JAMENDO_TAGS = ['pop', 'happy', 'rock', 'emotional', 'electronic', 'hiphop', 'jazz', 'indie', 'filmscore', 'classical', 'dark', 'dance', 'chillout', 'ambient', 'folk', 'metal', 'latin', 'rnb', 'reggae', 'punk', 'country', 'house', 'blues', 'energetic', 'sad', 'lofi', 'chill', 'relax', 'piano', 'upbeat', 'lounge'];
     
     function mapToValidJamendoTag(rawString) {
-        if (!rawString) return 'relax';
-        const lower = rawString.toLowerCase();
+        if (!rawString) return null;
+        const lower = rawString.toLowerCase().trim();
         
-        // 새로 적용된 프롬프트에 의해 정확한 태그가 들어온 경우
-        for (const tag of VALID_JAMENDO_TAGS) {
-            if (lower === tag || lower.includes(tag)) return tag;
+        if (lower.includes('lo-fi') || lower.includes('lofi')) {
+            return 'lofi';
         }
         
-        if (lower.includes('lofi') || lower.includes('lo-fi')) return 'chill';
+        // 허용 목록 31개 중 일치 여부 확인
+        for (const tag of VALID_JAMENDO_TAGS) {
+            if (lower === tag || lower.includes(tag)) {
+                return tag;
+            }
+        }
         
-        // 매핑 실패 시 기본값
-        return 'relax';
+        // relax 기본값 반환 제거: 매핑이 안 되면 null 반환
+        return null;
     }
-
+    
+    function getSelectedJamendoSafeTag() {
+        const targetLabel = sit || selectedMood;
+        if (!targetLabel) return null;
+        if (typeof HEALING_MOOD_DATA !== 'undefined' && Array.isArray(HEALING_MOOD_DATA)) {
+            for (const hCat of HEALING_MOOD_DATA) {
+                if (hCat.subSituations) {
+                    const found = hCat.subSituations.find(s => s.label === targetLabel || (s.label && s.label.trim() === targetLabel.trim()));
+                    if (found && found.jamendoSafeTag) {
+                        return found.jamendoSafeTag;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
     function attachAudioProgressSync(audio) {
         if (!audio) return;
         audio.ontimeupdate = () => {
@@ -345,112 +368,159 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+    
+    function getCategorySafeTags(categoryName) {
+        if (!categoryName) return [];
+        if (typeof HEALING_MOOD_DATA === 'undefined') return [];
+        for (const hCat of HEALING_MOOD_DATA) {
+            if (categoryName.includes(hCat.title) || hCat.title.includes(categoryName) || categoryName.includes(hCat.id)) {
+                const tags = [];
+                if (hCat.subSituations) {
+                    for (const sub of hCat.subSituations) {
+                        if (sub.jamendoSafeTag && !tags.includes(sub.jamendoSafeTag)) {
+                            tags.push(sub.jamendoSafeTag);
+                        }
+                    }
+                }
+                return tags;
+            }
+        }
+        return [];
+    }
 
-    async function loadJamendoTrack(tags, bpm) {
+    function handleNoMusicNotice() {
+        console.warn('[음악 안내] 같은 감정 내에서도 음악을 찾지 못해 안내 카드를 표시합니다.');
+        jamendoTrackInfo = null;
+        if (window.jamendoAudio) {
+            window.jamendoAudio.pause();
+            window.jamendoAudio = null;
+        }
+        if (typeof updateWizardView === 'function') updateWizardView();
+    }
 
-        // [Crucial Fix] Ignore AI's generated tag which often mismatches the context (e.g., suggesting 'chillout' for a lover's argument).
-        // Strictly use the curated selectedSafeTag which is perfectly mapped to the user's chosen situation.
-        let tagQuery = selectedSafeTag;
+    async function trySameEmotionFallback(failedTag, categoryName, situationName) {
+        const siblingTags = getCategorySafeTags(categoryName).filter(t => t !== failedTag);
+        console.info(`[같은 감정 대체] 카테고리 "${categoryName}" 내 대체 가능 태그 후보:`, siblingTags);
+
+        for (const altTag of siblingTags) {
+            try {
+                console.info(`[같은 감정 대체] "${altTag}" 태그로 대체 요청 시도`);
+                const catQuery = categoryName ? `&category=${encodeURIComponent(categoryName)}` : '';
+                const sitQuery = situationName ? `&situation=${encodeURIComponent(situationName)}` : '';
+                const res = await fetch(`/api/music?tag=${encodeURIComponent(altTag)}${catQuery}${sitQuery}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.track) {
+                        jamendoTrackInfo = data.track;
+                        console.info(`[같은 감정 대체 성공] 트랙 "${jamendoTrackInfo.name}" 로드됨 (태그: ${altTag})`);
+                        window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
+                        window.jamendoAudio.volume = 0.8;
+                        window.currentHealingAudio = window.jamendoAudio;
+                        attachAudioProgressSync(window.jamendoAudio);
+                        window.jamendoAudio.onerror = () => handleNoMusicNotice();
+                        window.jamendoAudio.onended = () => {
+                            isPlayingMusic = false;
+                            if (typeof updateWizardView === 'function') updateWizardView();
+                        };
+                        if (typeof updateWizardView === 'function') updateWizardView();
+                        return true;
+                    }
+                }
+            } catch (e) {
+                // 다음 대체 태그 시도
+            }
+        }
+
+        handleNoMusicNotice();
+        return false;
+    }
+
+    async function loadJamendoTrack(tag, bpm, categoryName, situationName, isFallbackAttempt = false) {
+        console.group('[음악 로드 파이프라인]');
+        console.info('1. 음악 요청 파라미터:', { tag, bpm, categoryName, situationName, isFallbackAttempt });
+        
+        if (!tag) {
+            console.warn('[음악 태그 진단] 유효한 음악 태그가 없어 음악을 요청하지 않습니다.');
+            jamendoTrackInfo = null;
+            if (window.jamendoAudio) {
+                window.jamendoAudio.pause();
+                window.jamendoAudio = null;
+            }
+            console.groupEnd();
+            return;
+        }
+        
+        const tagQuery = encodeURIComponent(tag);
         let bpmQuery = '';
         if (bpm) {
-            const bpmNum = parseInt(bpm.replace(/\D/g, ''));
+            const bpmNum = parseInt(String(bpm).replace(/\D/g, ''));
             if (!isNaN(bpmNum)) {
                 bpmQuery = `&bpm=${bpmNum}`;
             }
         }
+        const catQuery = categoryName ? `&category=${encodeURIComponent(categoryName)}` : '';
+        const sitQuery = situationName ? `&situation=${encodeURIComponent(situationName)}` : '';
+        
+        const url = `/api/music?tag=${tagQuery}${bpmQuery}${catQuery}${sitQuery}`;
+        console.info(`2. Jamendo BFF 요청 URL: ${url}`);
+        
         try {
-            // [Phase 3] 클라이언트에서 직접 외부 도메인(api.jamendo.com)을 호출하지 않고, 내부 프록시(BFF) 라우트를 호출하여 애드블록 및 혼합 콘텐츠 에러 원천 차단
-            const res = await fetch(`/api/music?tag=${encodeURIComponent(tagQuery)}${bpmQuery}`);
-            
+            const res = await fetch(url);
             if (!res.ok) {
-                throw new Error(`BFF Request Failed: ${res.status}`);
+                throw new Error(`BFF Request Failed: HTTP ${res.status}`);
             }
             
             const data = await res.json();
             if (data.success && data.track) {
                 jamendoTrackInfo = data.track;
+                console.info('3. Jamendo 트랙 로드 성공:', jamendoTrackInfo.name, `(ID: ${jamendoTrackInfo.id})`);
+                console.groupEnd();
                 window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
                 window.jamendoAudio.volume = 0.8;
                 window.currentHealingAudio = window.jamendoAudio;
                 attachAudioProgressSync(window.jamendoAudio);
-                window.jamendoAudio.onended = () => { isPlayingMusic = false; renderResults(); };
+                
+                // [Requirement 2] 재생 실패 시 같은 감정 카테고리 대체 곡 시도
+                window.jamendoAudio.onerror = async () => {
+                    console.warn('[오디오 재생 실패] 트랙 재생 오류. 같은 감정 카테고리 대체 곡 시도');
+                    if (!isFallbackAttempt) {
+                        await trySameEmotionFallback(tag, categoryName, situationName);
+                    } else {
+                        handleNoMusicNotice();
+                    }
+                };
+                
+                window.jamendoAudio.onended = () => {
+                    isPlayingMusic = false;
+                    if (typeof updateWizardView === 'function') updateWizardView();
+                };
+                if (typeof updateWizardView === 'function') updateWizardView();
             } else {
-                throw new Error("Invalid response format from BFF");
+                throw new Error(data.error || "BFF 응답에 트랙 데이터가 없습니다.");
             }
         } catch(e) {
-            console.error("Jamendo Load Error:", e);
-            // 1:1 Fallback Tracks Mapping for 18 Emotions
-            const FALLBACK_TRACKS = {
-                // LOVE
-                '답장 기다리며 애가 탐': { name: "애타는 기다림 (Anxious Waiting)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-                '좋아하는 사람 생각에 밤잠 설침': { name: "잠 못 이루는 새벽 (Sleepless Dawn)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-                '마주친 순간 멍해짐': { name: "시간이 멈춘 순간 (Time Stood Still)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-                '오래된 연인과의 편안한 데이트': { name: "익숙한 온기 (Familiar Warmth)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
-                
-                // DOWN
-                '이별 후 먹먹함': { name: "텅 빈 방안 (Empty Room)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
-                '이유 없이 마음이 텅 빔': { name: "공허한 울림 (Hollow Echo)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
-                '사소한 말에 깊게 베임': { name: "상처받은 영혼 (Fragile Soul)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" },
-                '세상에 혼자 남겨진 기분': { name: "외딴섬의 등대 (Lonely Lighthouse)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
-                
-                // OVERLOAD
-                '연인과 사소한 일로 다툼': { name: "어긋난 주파수 (Mismatched Frequency)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3" },
-                '인간관계 마찰로 부글거림': { name: "가라앉는 불꽃 (Fading Flame)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" },
-                '잡생각이 꼬리를 물고 안 멈춤': { name: "복잡한 회로 (Tangled Wires)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3" },
-                '실수 수습하느라 멘탈 흔들림': { name: "흔들리는 나침반 (Shaky Compass)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3" },
-                
-                // DEPLETED
-                '끝없는 과제/업무에 치임': { name: "과제를 넘기는 한숨 (Heavy Sigh)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3" },
-                '잠 부족으로 멍함': { name: "새벽녘 몽환의 숲 (Dreamy Dawn)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3" },
-                '사람 만나는 게 기 빨림': { name: "혼자만의 방 (Room of Own)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3" },
-                '손가락 하나 까딱할 힘 없음': { name: "녹아내리는 멘탈 (Melting Point)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3" },
-                
-                // CALM
-                '누구의 방해도 받기 싫음': { name: "침묵의 온기 (Warm Silence)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-                '조용히 나를 돌아보는 중': { name: "내면의 거울 (Inner Mirror)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-                '적당한 거리감이 편안함': { name: "평행선의 미학 (Parallel Lines)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
-                '혼자만의 새벽 공기': { name: "차분한 새벽별 (Calm Morning Star)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
-                
-                // ACTIVE
-                '원하던 목표를 달성함': { name: "작은 성취의 기쁨 (Joy of Achievement)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
-                '영감과 의욕이 넘쳐남': { name: "번뜩이는 스파크 (Brilliant Spark)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
-                '잡념 없이 깊게 빠져드는 중': { name: "무아지경의 흐름 (State of Flow)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" },
-                '텐션 올리고 싶은 기분': { name: "끓어오르는 에너지 (Boiling Energy)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" }
-            };
-
-            const fallback = FALLBACK_TRACKS[selectedMood] || { name: "마음을 다독이는 피아노 (Healing Piano)", audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" };
-
-            jamendoTrackInfo = {
-                name: fallback.name,
-                artist_name: "Andante AI",
-                audio: fallback.audio,
-                image: ""
-            };
-            window.jamendoAudio = window.GlobalAudio.create(jamendoTrackInfo.audio);
-            window.jamendoAudio.volume = 0.5;
-            window.currentHealingAudio = window.jamendoAudio;
+            console.warn(`[음악 로드 파이프라인] "${tag}" 실패 (${e.message}). 같은 감정 카테고리 내 대체 곡 시도`);
+            console.groupEnd();
+            if (!isFallbackAttempt) {
+                await trySameEmotionFallback(tag, categoryName, situationName);
+            } else {
+                handleNoMusicNotice();
+            }
         }
     }
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                try {
-                    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-                    const data = await res.json();
-                    if (data.weather && data.weather.length > 0) {
-                        updateThemeByTimeAndWeather(data.weather[0].main, Math.round(data.main.temp), data.name || '현위치');
-                    }
-                } catch (err) {}
-            },
-            () => {
-                fetch(`/api/weather?q=Seoul`).then(res => res.json()).then(data => {
-                    if(data.weather) updateThemeByTimeAndWeather(data.weather[0].main, Math.round(data.main.temp), data.name || 'Seoul');
-                }).catch(()=>{});
-            }
-        );
+    // OpenWeatherMap 기반 실시간 날씨 연동 (호출 순서: Geolocation 4초 타임아웃 -> 부천 기본 좌표 폴백)
+    initWeather();
+
+
+    // [Requirement 5] 기존 계정 권장 안내 (로그인 직후 1회 팝업)
+    if (sessionStorage.getItem('showPwSecurityNotice') === 'true') {
+        sessionStorage.removeItem('showPwSecurityNotice');
+        if (window.NeoModal && typeof window.NeoModal.alert === 'function') {
+            window.NeoModal.alert('보안을 위해 비밀번호를 8자 이상으로 바꿔 주세요.');
+        } else {
+            showToast('보안을 위해 비밀번호를 8자 이상으로 바꿔 주세요.');
+        }
     }
 
     // State Variables
@@ -487,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mypageBtn = document.getElementById('mypage-btn');
 
     if (token && authName) {
-        if (userInfoEl) userInfoEl.textContent = `👋 ${authName}님`;
+        if (userInfoEl) userInfoEl.textContent = `${authName}님`;
         if (loginNavBtn) loginNavBtn.classList.add('hidden');
         if (logoutBtn) logoutBtn.classList.remove('hidden');
         if (diaryBtn) diaryBtn.classList.remove('hidden');
@@ -513,6 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const HEALING_MOOD_DATA = [
       {
         id: "LOVE",
+        hue: 345,
         title: "설렘 & 사랑 💖",
         subtitle: "새로운 시작, 몽글몽글한 애정, 또는 짝사랑의 떨림",
         headerColor: "#FFCCD5", // 달콤한 딸기우유 핑크
@@ -530,6 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       {
         id: "DOWN",
+        hue: 210,
         title: "가라앉는 마음 & 이별 🌧️",
         subtitle: "먹먹한 우울감, 서운함, 그리고 조용한 위로가 필요한 때",
         headerColor: "#C6DCF2", // 차분하고 깊은 라벤더 블루
@@ -547,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       {
         id: "OVERLOAD",
+        hue: 15,
         title: "복잡한 생각 & 갈등 🤯",
         subtitle: "스트레스와 관계 마찰로 머릿속이 엉켜 숨이 가쁜 상태",
         headerColor: "#FFD4C2", // 산뜻한 로즈 피치
@@ -564,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       {
         id: "DEPLETED",
+        hue: 35,
         title: "지친 하루 & 쉼의 필요 🪫",
         subtitle: "모든 기운이 소진되어 가만히 기대어 쉬고 싶은 상태",
         headerColor: "#FCE2BE", // 포근하고 아늑한 카멜 베이지
@@ -581,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       {
         id: "CALM",
+        hue: 130,
         title: "잔잔한 고요 & 사색 🍵",
         subtitle: "차 한 잔과 함께 나를 온전히 마주하는 평온한 시간",
         headerColor: "#CEEACE", // 마음이 편안해지는 말차 그린
@@ -598,6 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       {
         id: "ACTIVE",
+        hue: 190,
         title: "반짝이는 영감 & 활력 🔥",
         subtitle: "기분 좋은 몰입, 설레는 의욕, 그리고 성취의 기쁨",
         headerColor: "#C1ECF4", // 시원하고 청량한 스카이 블루
@@ -641,204 +717,407 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAppliedGradient = '';
 
     // 3. 듀얼 오버레이 크로스페이드 배경 갱신 실행 함수 (Dual Overlay Cross-fade, 60fps)
+    function applyGradientWithCrossfade(gradientStr) {
+      /* Background handled solely by applyEmotionPalette via --bg */
+    }
+
     function updateAdaptiveBackground() {
-      const slider = document.getElementById('energy-battery-slider') || document.querySelector('input[type="range"]');
-      const battery = slider ? parseInt(slider.value, 10) : 100;
-      const category = window.currentSelectedCategory || null;
-      let gradientStr = '';
-
-      if (category && MOOD_GRADIENT_BASES[category]) {
-        const palette = battery >= 50 ? MOOD_GRADIENT_BASES[category].high : MOOD_GRADIENT_BASES[category].low;
-        gradientStr = `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 100%)`;
-      } else {
-        gradientStr = getBatteryOnlyGradient(battery);
-      }
-
-      if (gradientStr === currentAppliedGradient) return;
-      currentAppliedGradient = gradientStr;
-
-      const bgBack = document.getElementById('bg-layer-back');
-      const bgFront = document.getElementById('bg-layer-front');
-
-      if (bgBack && bgFront) {
-        // Ensure body background is transparent so dual layers are fully visible
-        if (document.body.style.background && document.body.style.background !== 'transparent') {
-          document.body.style.background = 'transparent';
+        if (typeof applyEmotionPalette === 'function') {
+            const catName = (typeof cat !== 'undefined' && cat && cat.n) ? cat.n : null;
+            applyEmotionPalette(catName);
         }
-
-        if (!bgBack.style.backgroundImage) {
-          // 최초 렌더링 시 하부 레이어에 즉시 주입 (깜빡임 방지)
-          bgBack.style.backgroundImage = gradientStr;
-          bgBack.style.opacity = '1';
-          bgFront.style.opacity = '0';
-          isCrossfadeFrontActive = false;
-          return;
-        }
-
-        // 듀얼 레이어 핑퐁 크로스페이드 (Cross-fade Ping-Pong)
-        if (!isCrossfadeFrontActive) {
-          // Front 레이어에 새 그라데이션 주입 후 Fade-In (1000ms)
-          bgFront.style.backgroundImage = gradientStr;
-          bgFront.style.opacity = '1';
-          isCrossfadeFrontActive = true;
-        } else {
-          // Back 레이어에 새 그라데이션 주입 후 Front 레이어 Fade-Out (1000ms)
-          bgBack.style.backgroundImage = gradientStr;
-          bgFront.style.opacity = '0';
-          isCrossfadeFrontActive = false;
-        }
-      } else {
-        // Fallback for single layer
-        const bgTarget = document.getElementById('main-bg-wrapper') || document.body;
-        bgTarget.style.backgroundImage = gradientStr;
-        bgTarget.style.transition = 'background-image 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-      }
     }
 
     window.getBatteryOnlyGradient = getBatteryOnlyGradient;
     window.MOOD_GRADIENT_BASES = MOOD_GRADIENT_BASES;
     window.updateAdaptiveBackground = updateAdaptiveBackground;
+    window.applyGradientWithCrossfade = applyGradientWithCrossfade;
 
-    let energyLevel = 100;
+    let energyLevel = 50;
+    let isBatteryInteracted = false;
     let expandedCategory = 'LOVE';
     window.currentSelectedCategory = 'LOVE';
 
-    function renderAccordion() {
-        const energySlider = document.getElementById('energy-battery-slider') || document.getElementById('energy-slider') || document.querySelector('input[type="range"]');
-        const energyFill = document.getElementById('energy-fill');
-        const energyText = document.getElementById('energy-percentage-text');
-        const accordionContainer = document.getElementById('mood-accordion-container');
-        
-        if (!energySlider || !accordionContainer) return;
+    function getBatteryInfo(level) {
+        const v = Math.max(0, Math.min(100, Math.round(Number(level) || 0)));
+        let text = '가득 차 있어요';
+        if (v < 20) text = '쉼이 필요해요';
+        else if (v < 45) text = '조금 남았어요';
+        else if (v < 75) text = '충분해요';
 
-        energySlider.value = energyLevel;
-        if(energyFill) {
-            energyFill.style.width = `${energyLevel}%`;
+        return {
+            value: v,
+            num: `${v}%`,
+            text: text,
+            summary: `${text} · ${v}%`
+        };
+    }
+
+    function getBatteryText(level) {
+        return getBatteryInfo(level).text;
+    }
+
+    // =========================================================================
+    // 🎨 Andante 메인 프로토타입 통합 코어 시스템 (날씨, 아치, 감정, 배경 단일화)
+    // =========================================================================
+
+    const CATS = [
+      {
+        n: '설렘 & 사랑',
+        h: 345,
+        d: '새로운 시작, 몽글몽글한 애정, 또는 짝사랑의 떨림',
+        hl: '두근거리는 마음을,<br>한 장의 그림으로.',
+        s: ['답장 기다리며 애가 탐', '좋아하는 사람 생각에 밤잠 설침', '마주친 순간 멍해짐', '오래된 연인과의 편안한 데이트', '혼자 의미 부여하고 착각할까 겁남', '온종일 SNS 염탐하며 서성임', '처음으로 손잡은 순간의 두근거림', '별것 아닌 일상도 공유하고 싶음']
+      },
+      {
+        n: '가라앉는 마음 & 이별',
+        h: 210,
+        d: '먹먹한 우울감, 서운함, 그리고 조용한 위로가 필요한 때',
+        hl: '가라앉은 마음에도,<br>고요한 빛이 들어요.',
+        s: ['이별 후 먹먹함', '이유 없이 마음이 텅 빔', '사소한 말에 깊게 베임', '세상에 혼자 남겨진 기분', '다른 사람과 비교하며 자책감 듦', '노력해도 제자리걸음인 것 같아 막막함', '잊은 줄 알았던 기억이 불쑥 떠오름', '누구에게도 털어놓지 못하고 속앓이 중']
+      },
+      {
+        n: '복잡한 생각 & 갈등',
+        h: 15,
+        d: '스트레스와 관계 마찰로 머릿속이 엉켜 숨이 가쁜 상태',
+        hl: '엉킨 마음을 잠시,<br>내려놓아 보세요.',
+        s: ['연인과 사소한 일로 다툼', '인간관계 마찰로 부글거림', '잡생각이 꼬리를 물고 안 멈춤', '실수 수습하느라 멘탈 흔들림', '팀플 무임승차 때문에 분통 터짐', '마감 직전 벼락치기로 심장 뜀', '오해를 풀고 싶은데 자존심 상함', '선 넘는 참견과 간섭에 숨 막힘']
+      },
+      {
+        n: '지친 하루 & 쉼의 필요',
+        h: 35,
+        d: '모든 기운이 소진되어 가만히 기대어 쉬고 싶은 상태',
+        hl: '오늘은 충분히 애썼어요,<br>이제 쉬어 가요.',
+        s: ['끝없는 과제/업무에 치임', '잠 부족으로 멍함', '사람 만나는 게 기 빨림', '손가락 하나 까딱할 힘 없음', '모니터만 오래 봐서 눈과 머리가 지끈거림', '억지 미소 지으며 감정 노동함', '모든 알림 끄고 잠수 타고 싶음', '밥 챙겨 먹는 것조차 귀찮고 버거움']
+      },
+      {
+        n: '잔잔한 고요 & 사색',
+        h: 130,
+        d: '차 한 잔과 함께 나를 온전히 마주하는 평온한 시간',
+        hl: '고요한 마음을,<br>오래 곁에 머물게 해요.',
+        s: ['누구의 방해도 받기 싫음', '조용히 나를 돌아보는 중', '적당한 거리감이 편안함', '혼자만의 새벽 공기', '비 내리는 창밖을 가만히 응시함', '혼자 걷는 밤 산책길이 포근함', '좋아하는 노래 하나만 무한 반복 중', '복잡한 관계에서 벗어나 숨 쉬는 시간']
+      },
+      {
+        n: '반짝이는 영감 & 활력',
+        h: 190,
+        d: '기분 좋은 몰입, 설레는 의욕, 그리고 성취의 기쁨',
+        hl: '반짝이는 마음을,<br>놓치지 않게요.',
+        s: ['원하던 목표를 달성함', '영감과 의욕이 넘쳐남', '잡념 없이 깊게 빠져드는 중', '텐션 올리고 싶은 기분', '운동 후 땀 흘리고 개운함', '어려운 문제를 끝내 해결하고 짜릿함', '새로운 도전을 앞두고 설레는 긴장감', '오랜만에 마음에 드는 결과물이 나옴']
+      }
+    ];
+
+    const WORD = getBatteryText;
+    const DEFAULT_H1 = '오늘의 마음을,<br>한 장의 그림으로.';
+    const BUCHEON_COORDS = { lat: 37.5034, lon: 126.766 };
+
+    // 상태 변수
+    let H = 25;
+    let W = '맑음'; // 맑음, 흐림, 비, 눈
+    let rawWeatherMain = ''; // weather[0].main (영문 원본: Clear, Rain, Clouds, etc.)
+    let weatherDesc = ''; // weather[0].description
+    let weatherTemp = null; // main.temp
+    let weatherLocationName = ''; // name
+    let isWeatherFailed = false; // API 실패 또는 알 수 없는 날씨 여부 (중립 상태)
+    let cat = null; // 선택된 감정 카테고리
+    let sit = ''; // 선택된 구체적 상황
+        const EMOTION_PALETTES = {
+        DEFAULT:  { bg: '#FDFBD4', sel: '#4B6E48', selHue: 115 },
+        '설렘 & 사랑': { bg: '#F2C7C7', sel: '#FFB7C5', selHue: 348 },
+        '가라앉는 마음 & 이별': { bg: '#BDDDFC', sel: '#6A89A7', selHue: 210 },
+        '복잡한 생각 & 갈등': { bg: '#B5C7EB', sel: '#9A8BBF', selHue: 257 },
+        '지친 하루 & 쉼의 필요': { bg: '#fccbac', sel: '#C99A6E', selHue: 29 },
+        '잔잔한 고요 & 사색': { bg: '#c4f5c9', sel: '#7FB5A3', selHue: 160 },
+        '반짝이는 영감 & 활력': { bg: '#EFD9AA', sel: '#C09E7C', selHue: 30 }
+    };
+
+    function applyEmotionPalette(catName) {
+        const palette = (catName && EMOTION_PALETTES[catName]) ? EMOTION_PALETTES[catName] : EMOTION_PALETTES.DEFAULT;
+        document.documentElement.style.setProperty('--bg', palette.bg);
+        document.documentElement.style.setProperty('--sel', palette.sel);
+        return palette;
+    }
+
+    // 2. 날씨 분류 함수 (weather[0].main 기준 단일 함수)
+    function classifyWeather(mainVal) {
+        if (!mainVal) return { category: '흐림', isUnknown: true };
+        const m = String(mainVal).trim().toLowerCase();
+
+        if (m === 'clear') {
+            return { category: '맑음', isUnknown: false };
         }
-        if(energyText) {
-            energyText.textContent = `${energyLevel}%`;
+        if (m === 'rain' || m === 'drizzle' || m === 'thunderstorm') {
+            return { category: '비', isUnknown: false };
+        }
+        if (m === 'snow') {
+            return { category: '눈', isUnknown: false };
+        }
+        if (['clouds', 'haze', 'mist', 'fog', 'smoke', 'dust', 'sand', 'ash', 'squall', 'tornado'].includes(m)) {
+            return { category: '흐림', isUnknown: false };
         }
 
-        // Energy listener
-        energySlider.oninput = (e) => {
-            energyLevel = Number(e.target.value);
-            if(energyFill) {
-                energyFill.style.width = `${energyLevel}%`;
+        // 알 수 없는 값: 흐림 (채도 최저)
+        return { category: '흐림', isUnknown: true };
+    }
+
+    // 아치 그림 SVG 채움색(채도 25~35%, 명도 60~80%) 및 글로우 계산
+    function computeThemeColors(selHue) {
+        return {
+            arch: {
+                k0: `hsl(${selHue} 28% 78%)`,
+                k2: `hsl(${(selHue + 25) % 360} 34% 75%)`,
+                k3: `hsl(${selHue} 30% 70%)`,
+                k4: `hsl(${selHue} 32% 64%)`,
+                k5: `hsl(${(selHue + 15) % 360} 27% 68%)`,
+                k6: `hsl(${selHue} 30% 62%)`
+            },
+            glow: {
+                h: selHue,
+                s: '30%',
+                l: '70%'
             }
-            if(energyText) {
-                energyText.textContent = `${energyLevel}%`;
+        };
+    }
+
+    // 아치 및 감정 팔레트 렌더링 함수
+    function paintTheme() {
+        const catName = cat ? cat.n : null;
+        const palette = applyEmotionPalette(catName);
+        const selHue = palette.selHue;
+        const colors = computeThemeColors(selHue);
+
+        const archEl = document.getElementById('arch');
+        if (archEl) {
+            archEl.style.setProperty('--k0', colors.arch.k0);
+            archEl.style.setProperty('--k2', colors.arch.k2);
+            archEl.style.setProperty('--k3', colors.arch.k3);
+            archEl.style.setProperty('--k4', colors.arch.k4);
+            archEl.style.setProperty('--k5', colors.arch.k5);
+            archEl.style.setProperty('--k6', colors.arch.k6);
+            archEl.dataset.w = W;
+        }
+
+        const glowEl = document.getElementById('glow');
+        if (glowEl) {
+            glowEl.style.setProperty('--gh', colors.glow.h);
+            glowEl.style.setProperty('--gs', colors.glow.s);
+            glowEl.style.setProperty('--gl', colors.glow.l);
+        }
+
+        document.documentElement.style.setProperty('--gh', selHue);
+    }
+    window.paintTheme = paintTheme;
+
+    function pulseGlow() {
+        const glowEl = document.getElementById('glow');
+        if (!glowEl) return;
+        glowEl.classList.remove('pulse');
+        void glowEl.offsetWidth;
+        glowEl.classList.add('pulse');
+    }
+
+    // 4. 캡션 포맷팅 함수 (예: "비 내리는 부천, 16°C. 이별 후 먹먹함의 마음을 담았어요.")
+    function updateCaption() {
+        const capEl = document.getElementById('cap');
+        if (!capEl) return;
+
+        if (isWeatherFailed) {
+            capEl.textContent = '날씨를 가져오지 못했어요. 마음의 결만으로 그림을 그릴게요.';
+            return;
+        }
+
+        const weatherPrefix = {
+            '맑음': '맑은',
+            '흐림': '흐린',
+            '비': '비 내리는',
+            '눈': '눈 내리는'
+        }[W] || '맑은';
+
+        let locPart = weatherLocationName ? weatherLocationName : '';
+        if (locPart.toLowerCase() === 'bucheon-si' || locPart.toLowerCase() === 'bucheon') locPart = '부천';
+        if (locPart.toLowerCase() === 'seoul') locPart = '서울';
+
+        const placeText = locPart ? `${locPart}` : '하늘';
+        const tempText = weatherTemp !== null ? `, ${weatherTemp}°C` : '';
+        const prefix = `${weatherPrefix} ${placeText}${tempText}.`;
+
+        if (sit) {
+            capEl.textContent = `${prefix} ${sit}의 마음을 담았어요.`;
+        } else if (cat) {
+            capEl.textContent = `${prefix} ${cat.n}의 마음을 담을 준비가 됐어요.`;
+        } else {
+            capEl.textContent = `${prefix} 오늘의 마음을 담을 준비가 됐어요.`;
+        }
+    }
+
+    function swapTitle(html) {
+        const h = document.getElementById('h1');
+        if (!h || h.innerHTML === html) return;
+        h.classList.add('swap');
+        setTimeout(() => {
+            h.innerHTML = html;
+            h.classList.remove('swap');
+        }, 400);
+    }
+
+    // 빗줄기와 눈송이 SVG 엘리먼트 생성
+    function buildSnow() {
+        const rainG = document.getElementById('rainG');
+        const snowG = document.getElementById('snowG');
+        if (rainG) rainG.innerHTML = Array.from({length:30},(_,i)=>`<line x1="${(i*37)%400}" y1="${(i*53)%420}" x2="${(i*37)%400-10}" y2="${(i*53)%420+30}"/>`).join('');
+        if (snowG) snowG.innerHTML = Array.from({length:30},(_,i)=>`<circle cx="${(i*97)%400}" cy="${(i*61)%460}" r="${2+i%3}" fill="#fff" opacity=".85"/>`).join('');
+    }
+
+    // 3. 날씨 호출 순서 및 실패 처리 (Geolocation 4초 제한 -> 부천 기본 좌표 -> 단 1회 호출)
+    async function fetchWeatherByCoords(lat, lon) {
+        try {
+            const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+            const data = await res.json();
+
+            if (data.error || !data.weather || data.weather.length === 0) {
+                handleWeatherFailure();
+                return;
             }
-            
-            // Auto routing
-            if (energyLevel <= 30) {
-                if (expandedCategory !== 'DEPLETED' && expandedCategory !== 'DOWN') {
-                    expandedCategory = 'DEPLETED';
-                }
-            } else if (energyLevel >= 80) {
-                if (expandedCategory !== 'ACTIVE' && expandedCategory !== 'PROUD') {
-                    expandedCategory = 'ACTIVE';
-                }
-            }
-            window.currentSelectedCategory = expandedCategory;
-            updateAdaptiveBackground();
-            renderAccordionHTML(accordionContainer);
+
+            const w0 = data.weather[0];
+            rawWeatherMain = w0.main || 'Clear';
+            weatherDesc = w0.description || '';
+            weatherTemp = data.main && typeof data.main.temp === 'number' ? Math.round(data.main.temp) : null;
+            weatherLocationName = data.name || '';
+
+            const classified = classifyWeather(rawWeatherMain);
+            W = classified.category;
+            isWeatherFailed = classified.isUnknown;
+
+            paintTheme();
+            updateCaption();
+
+            // 백그라운드 BGM 초기화 연동
+            const curHour = new Date().getHours();
+            if (typeof initBGM === 'function') initBGM(rawWeatherMain, curHour);
+        } catch (err) {
+            handleWeatherFailure();
+        }
+    }
+
+    function handleWeatherFailure() {
+        isWeatherFailed = true;
+        W = '흐림';
+        rawWeatherMain = 'Clouds';
+        paintTheme();
+        const capEl = document.getElementById('cap');
+        if (capEl) {
+            capEl.textContent = '날씨를 가져오지 못했어요. 마음의 결만으로 그림을 그릴게요.';
+        }
+    }
+
+    function initWeather() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
+                },
+                () => {
+                    // 위치 거부 또는 실패 시 부천시 기본 좌표 사용 (?q=Seoul 폴백 제거)
+                    fetchWeatherByCoords(BUCHEON_COORDS.lat, BUCHEON_COORDS.lon);
+                },
+                { timeout: 4000 }
+            );
+        } else {
+            fetchWeatherByCoords(BUCHEON_COORDS.lat, BUCHEON_COORDS.lon);
+        }
+    }
+
+    // Step 1 프로토타입 인터랙션 초기화 (온기, 감정 카드, 상황 칩, 이야기)
+    function initPrototypeInteractions() {
+        buildSnow();
+
+        // 1. 온기 캡슐 슬라이더
+        const warm = document.getElementById('warm');
+        const track = document.getElementById('track');
+        const warmWord = document.getElementById('warmWord');
+
+        const syncWarm = () => {
+            if (!warm) return;
+            const v = +warm.value;
+            energyLevel = v;
+            isBatteryInteracted = true;
+            const info = getBatteryInfo(v);
+            if (track) track.style.setProperty('--p', v + '%');
+            if (warmWord) warmWord.textContent = info.text;
+            const warmNum = document.getElementById('warmNum');
+            if (warmNum) warmNum.textContent = info.num;
+            warm.setAttribute('aria-valuetext', `${info.text} (${info.num})`);
         };
 
-        window.currentSelectedCategory = expandedCategory;
-        updateAdaptiveBackground();
-        renderAccordionHTML(accordionContainer);
+        if (warm) {
+            warm.oninput = syncWarm;
+            syncWarm();
+        }
+
+        // 2. 6대 감정 카드 렌더링
+        const catsBox = document.getElementById('cats');
+        const chipsBox = document.getElementById('chips');
+        const subHint = document.getElementById('subHint');
+
+        if (catsBox) {
+            catsBox.innerHTML = '';
+            CATS.forEach(c => {
+                const palette = EMOTION_PALETTES[c.n] || EMOTION_PALETTES.DEFAULT;
+                const dotColor = palette.bg;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'main-emotion-card cat';
+                b.setAttribute('aria-pressed', 'false');
+                b.innerHTML = `<span class="main-card-header n"><span class="main-card-dot dot" style="background:${dotColor}"></span>${c.n}</span><small class="main-card-desc">${c.d}</small>`;
+
+                b.onclick = () => {
+                    cat = c;
+                    sit = '';
+                    H = c.h;
+                    selectedMood = '';
+
+                    catsBox.querySelectorAll('.main-emotion-card, .cat').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+
+                    if (chipsBox) {
+                        chipsBox.replaceChildren();
+                        chipsBox.hidden = false;
+                        if (subHint) subHint.hidden = false;
+
+                        c.s.forEach(t => {
+                            const p = document.createElement('button');
+                            p.type = 'button';
+                            p.className = 'main-situation-chip chip';
+                            p.textContent = t;
+                            p.setAttribute('aria-pressed', 'false');
+
+                            p.onclick = () => {
+                                sit = t;
+                                selectedMood = t;
+                                chipsBox.querySelectorAll('.main-situation-chip, .chip').forEach(x => x.setAttribute('aria-pressed', x === p ? 'true' : 'false'));
+                                updateCaption();
+                            };
+
+                            chipsBox.appendChild(p);
+                        });
+                    }
+
+                    paintTheme();
+                    updateCaption();
+                    pulseGlow();
+                    swapTitle(c.hl);
+                };
+
+                catsBox.appendChild(b);
+            });
+        }
+
+        // 초기 화면 페인팅 (감정 선택 전에는 베이지만 표시)
+        paintTheme();
+        updateCaption();
     }
 
-    let selectedSafeTag = 'indie';
-    let selectedThemeColor = '#FAF2F2';
-
-    function renderAccordionHTML(container) {
-        container.innerHTML = '';
-        HEALING_MOOD_DATA.forEach(category => {
-            const isExpanded = expandedCategory === category.id;
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col mb-2.5";
-
-            const card = document.createElement('div');
-            card.className = "relative rounded-3xl overflow-hidden flex flex-col transition-all duration-300";
-            card.style.backgroundColor = category.headerColor || '#FFFFFF';
-            card.style.border = isExpanded ? `1.5px solid ${category.borderColor || '#78716c'}` : `1px solid ${category.borderColor || '#E2DED9'}`;
-            card.style.boxShadow = isExpanded ? "0 12px 30px -8px rgba(28, 25, 23, 0.08)" : "0 2px 6px rgba(28, 25, 23, 0.02)";
-
-            const btn = document.createElement('button');
-            btn.className = "w-full py-4 px-6 flex justify-between items-center bg-transparent outline-none cursor-pointer";
-            
-            const textWrap = document.createElement('div');
-            textWrap.className = "flex flex-col items-start text-left";
-            textWrap.innerHTML = `<span class="font-medium text-base text-stone-900 font-editorial-serif tracking-tight">${category.title}</span>`;
-            
-            if (isExpanded) {
-                const subEl = document.createElement('span');
-                subEl.className = "text-xs font-normal text-stone-600 mt-1 break-keep font-editorial-serif";
-                subEl.textContent = category.subtitle;
-                textWrap.appendChild(subEl);
-            }
-            
-            btn.appendChild(textWrap);
-            
-            const iconWrap = document.createElement('div');
-            iconWrap.className = "flex items-center justify-center rounded-full flex-shrink-0 transition-colors";
-            iconWrap.style.width = '28px';
-            iconWrap.style.height = '28px';
-            iconWrap.style.backgroundColor = isExpanded ? '#292524' : 'rgba(255,255,255,0.85)';
-            iconWrap.style.color = isExpanded ? '#ffffff' : '#44403c';
-            iconWrap.style.border = isExpanded ? '1px solid #292524' : `1px solid ${category.borderColor || '#E2DED9'}`;
-            iconWrap.innerHTML = `<span class="text-sm font-light leading-none">${isExpanded ? '−' : '+'}</span>`;
-            btn.appendChild(iconWrap);
-
-            btn.onclick = (e) => {
-                e.preventDefault();
-                expandedCategory = isExpanded ? null : category.id;
-                window.currentSelectedCategory = expandedCategory;
-                updateAdaptiveBackground();
-                renderAccordionHTML(container);
-            };
-            card.appendChild(btn);
-
-            if (isExpanded) {
-                const chipArea = document.createElement('div');
-                chipArea.className = "flex items-stretch gap-2 px-6 pb-6 pt-3 w-full border-t border-black/5 bg-white/40";
-                
-                // Flex Wrap Grid (Soft Pebble Chips)
-                const chipScroll = document.createElement('div');
-                chipScroll.className = "flex flex-wrap gap-2.5 flex-1 min-w-0";
-
-                category.subSituations.forEach(sit => {
-                    const tagBtn = document.createElement('button');
-                    const isSelected = selectedMood === sit.label;
-                    tagBtn.className = `px-4 py-2 rounded-full text-sm font-editorial-serif transition-all whitespace-normal text-left leading-relaxed cursor-pointer ${
-                        isSelected 
-                            ? 'bg-[#292524] text-white border border-[#292524] shadow-md scale-[1.02] font-medium' 
-                            : 'bg-white border border-stone-300 text-stone-800 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:border-stone-500 hover:bg-stone-50'
-                    }`;
-                    tagBtn.textContent = sit.label;
-                    
-                    tagBtn.onclick = (e) => {
-                        e.preventDefault();
-                        selectedMood = sit.label;
-                        selectedSafeTag = sit.jamendoSafeTag;
-                        selectedThemeColor = sit.themeColor;
-                        window.currentSelectedCategory = category.id;
-                        updateAdaptiveBackground();
-                        renderAccordionHTML(container);
-                    };
-                    chipScroll.appendChild(tagBtn);
-                });
-                chipArea.appendChild(chipScroll);
-                card.appendChild(chipArea);
-            }
-            wrapper.appendChild(card);
-            container.appendChild(wrapper);
-        });
-    }
-
-    renderAccordion();
+    // 돔 로드 시 프로토타입 인터랙션 즉시 초기화
+    initPrototypeInteractions();
 
     // Toast Utility
     const showToast = (msg) => {
@@ -851,6 +1130,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Wizard State & UI Controller
     let currentWizardStep = 1;
+    let miniWizardStep = '1a'; // '1a': 마음/상황 선택, '1b': 이야기 작성
+
+    function updateMiniWizardView() {
+        const s1a = document.getElementById('wizard-step-1a');
+        const s1b = document.getElementById('wizard-step-1b');
+        if (!s1a || !s1b) return;
+
+        if (miniWizardStep === '1a') {
+            s1a.classList.remove('hidden');
+            s1b.classList.add('hidden');
+        } else {
+            s1a.classList.add('hidden');
+            s1b.classList.remove('hidden');
+
+            // 선택된 감정/상황/온기 요약 카드 갱신
+            const sumDot = document.getElementById('summary-dot-1b');
+            const sumCat = document.getElementById('summary-cat-1b');
+            const sumSit = document.getElementById('summary-sit-1b');
+            const sumWarm = document.getElementById('summary-warm-1b');
+
+            if (cat) {
+                const p = (typeof EMOTION_PALETTES !== 'undefined' && EMOTION_PALETTES[cat.n]) 
+                    ? EMOTION_PALETTES[cat.n] 
+                    : (EMOTION_PALETTES?.DEFAULT || { bg: '#FDFBD4', sel: '#4B6E48' });
+                if (sumDot) sumDot.style.background = p.bg || p.sel;
+                if (sumCat) sumCat.textContent = cat.n;
+            } else {
+                if (sumCat) sumCat.textContent = '기본 감정';
+            }
+
+            if (sumSit) {
+                sumSit.textContent = sit ? `# ${sit}` : '# 자유로운 이야기';
+            }
+
+            const warmSlider = document.getElementById('warm');
+            const warmVal = warmSlider ? warmSlider.value : '50';
+            const batteryInfo = getBatteryInfo(warmVal);
+            if (sumWarm) {
+                sumWarm.textContent = `🌿 ${batteryInfo.summary}`;
+            }
+        }
+    }
     
     // Initial Render
     updateWizardView();
@@ -871,7 +1192,11 @@ document.addEventListener('DOMContentLoaded', () => {
             loader.classList.add('hidden');
         }
 
-        if (currentWizardStep === 1 && s1) { s1.classList.remove('hidden'); updateAdaptiveBackground(); }
+        if (currentWizardStep === 1 && s1) { 
+            s1.classList.remove('hidden'); 
+            updateMiniWizardView();
+            updateAdaptiveBackground(); 
+        }
         if (currentWizardStep === 2 && s2) s2.classList.remove('hidden');
         if (currentWizardStep === 3 && s3) s3.classList.remove('hidden');
 
@@ -912,43 +1237,61 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. 음악 플레이어의 보더, 프로그레스 바, 배지 컬러 동적 업데이트
             const musicSlot = document.getElementById('music-sticker-slot');
             if (musicSlot) {
-                const rawTempo = musicData.tempoBpm || '70';
-                const formattedTempo = rawTempo.includes('BPM') ? rawTempo : `${rawTempo} BPM`;
+                if (jamendoTrackInfo) {
+                    const rawTempo = musicData.tempoBpm || '70';
+                    const formattedTempo = rawTempo.includes('BPM') ? rawTempo : `${rawTempo} BPM`;
 
-                musicSlot.innerHTML = window.AndanteComponents.renderMusicSticker({
-                    title: jamendoTrackInfo ? jamendoTrackInfo.name : (musicData.musicGenre || 'Lo-Fi Acoustic'),
-                    artist: jamendoTrackInfo ? jamendoTrackInfo.artist_name : "Andante AI",
-                    image: jamendoTrackInfo ? jamendoTrackInfo.image : "",
-                    tags: [
-                        selectedMood,
-                        musicData.primaryEmotion || '평온함',
-                        formattedTempo
-                    ],
-                    isPlaying: isPlayingMusic,
-                    themeColor: moodColor
-                });
-                const stickerBtn = musicSlot.querySelector('#sticker-play-btn');
-                if (stickerBtn) {
-                    stickerBtn.onclick = () => {
-                        if (window.jamendoAudio) {
-                            if (isPlayingMusic) {
-                                window.jamendoAudio.pause();
+                    musicSlot.innerHTML = window.AndanteComponents.renderMusicSticker({
+                        title: jamendoTrackInfo.name,
+                        artist: jamendoTrackInfo.artist_name || "Andante AI",
+                        image: jamendoTrackInfo.image || "",
+                        tags: [
+                            selectedMood,
+                            musicData.primaryEmotion || '평온함',
+                            formattedTempo
+                        ],
+                        isPlaying: isPlayingMusic,
+                        themeColor: moodColor
+                    });
+                    const stickerBtn = musicSlot.querySelector('#sticker-play-btn');
+                    if (stickerBtn) {
+                        stickerBtn.onclick = () => {
+                            if (window.jamendoAudio) {
+                                if (isPlayingMusic) {
+                                    window.jamendoAudio.pause();
+                                }
+                                else {
+                                    pauseBGM();
+                                    window.jamendoAudio.play();
+                                }
                             }
-                            else {
-                                pauseBGM();
-                                window.jamendoAudio.play();
-                            }
-                        }
-                        isPlayingMusic = !isPlayingMusic;
-                        updateWizardView();
-                    };
+                            isPlayingMusic = !isPlayingMusic;
+                            updateWizardView();
+                        };
+                    }
+                } else {
+                    // 최근 곡도 없으면 404 NO_MATCH를 반환하고, 클라이언트는 플레이어를 숨기고 "지금은 이 마음에 맞는 음악을 찾지 못했어요."만 표시
+                    musicSlot.innerHTML = `
+                    <div class="max-w-2xl mx-auto rounded-3xl bg-white/85 backdrop-blur-md border border-stone-200/90 p-6 shadow-sm text-center text-stone-500 font-serif text-sm">
+                        지금은 이 마음에 맞는 음악을 찾지 못했어요.
+                    </div>`;
                 }
             }
-
             const canvasSlot = document.getElementById('canvas-card-slot');
             if (canvasSlot) {
                 const targetWeather = currentAnalysis?.weather || currentWeatherVal;
-                if (generatedImageUrl) {
+                if (currentAnalysis?.isAiFallback) {
+                    canvasSlot.innerHTML = `
+                    <div class="editorial-card text-center py-14 px-8 flex flex-col items-center gap-6" style="margin: 0 auto; max-width: 640px; background-color: #ffffff; border-radius: 1.5rem; border: 1px solid #E2DED9; box-shadow: 0 16px 36px -10px rgba(28, 25, 23, 0.06);">
+                        <div style="width: 52px; height: 52px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #d97706;">
+                            ⏳
+                        </div>
+                        <div>
+                            <p class="font-editorial-serif text-lg text-stone-800 font-medium mb-1">지금 그림과 시를 만드는 데 시간이 걸려요, 잠시 후 다시 시도해 주세요.</p>
+                            <p class="text-xs text-stone-400 font-sans tracking-wide">선택하신 감정에 맞춘 힐링 음악은 정상적으로 재생되고 있습니다.</p>
+                        </div>
+                    </div>`;
+                } else if (generatedImageUrl) {
                     canvasSlot.innerHTML = window.AndanteComponents.renderAICanvasCard({
                         imageUrl: generatedImageUrl,
                         isLoading: false,
@@ -995,8 +1338,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 `;
-                finalSlot.querySelector('#final-save-btn').onclick = saveToDiary;
-                finalSlot.querySelector('#final-share-btn').onclick = shareToBoard;
+                const saveBtn = finalSlot.querySelector('#final-save-btn');
+                const shareBtn = finalSlot.querySelector('#final-share-btn');
+                if (saveBtn) {
+                    saveBtn.onclick = saveToDiary;
+                    if (isDiarySavedForCurrentSession) {
+                        saveBtn.disabled = true;
+                        saveBtn.style.pointerEvents = 'none';
+                        saveBtn.style.opacity = '0.75';
+                        saveBtn.innerHTML = '<span>✅</span> <span class="font-editorial-serif">저장 완료</span>';
+                    }
+                }
+                if (shareBtn) {
+                    shareBtn.onclick = shareToBoard;
+                    if (isBoardSharedForCurrentSession) {
+                        shareBtn.disabled = true;
+                        shareBtn.style.pointerEvents = 'none';
+                        shareBtn.style.opacity = '0.75';
+                        shareBtn.innerHTML = '<span>✅</span> <span class="font-editorial-serif">공유 완료</span>';
+                    }
+                }
             } else if (finalSlot) {
                 finalSlot.innerHTML = '';
             }
@@ -1009,35 +1370,93 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.addEventListener('click', action);
     };
 
-    bindBtn('btn-back-to-1', () => { currentWizardStep = 1; updateWizardView(); });
+    // Step 1 Mini-Wizard Buttons (Progressive Disclosure)
+    const btnTo1b = document.getElementById('btn-to-1b');
+    if (btnTo1b) {
+        btnTo1b.addEventListener('click', () => {
+            if (!cat) {
+                showToast('마음의 큰 결을 먼저 골라주세요.');
+                const catsBox = document.getElementById('cats');
+                if (catsBox) catsBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            miniWizardStep = '1b';
+            updateMiniWizardView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                const storyEl = document.getElementById('story');
+                if (storyEl) storyEl.focus();
+            }, 150);
+        });
+    }
+
+    const btnBackTo1a = document.getElementById('btn-back-to-1a');
+    if (btnBackTo1a) {
+        btnBackTo1a.addEventListener('click', () => {
+            miniWizardStep = '1a';
+            updateMiniWizardView();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    bindBtn('btn-back-to-1', () => { 
+        currentWizardStep = 1; 
+        miniWizardStep = '1b';
+        updateWizardView(); 
+    });
     bindBtn('btn-back-to-2', () => { currentWizardStep = 2; updateWizardView(); });
     bindBtn('btn-next-to-3', () => { currentWizardStep = 3; updateWizardView(); });
     bindBtn('btn-restart', () => {
         currentWizardStep = 1;
+        miniWizardStep = '1a';
         currentAnalysis = null;
         window.currentAnalysis = null;
         generatedImageUrl = null;
         window.generatedImageUrl = null;
-        const moodInput = document.getElementById('mood-input');
+        cat = null;
+        sit = '';
+        selectedMood = '';
+        isDiarySavedForCurrentSession = false;
+        isBoardSharedForCurrentSession = false;
+        energyLevel = 50;
+        isBatteryInteracted = false;
+        const warmEl = document.getElementById('warm');
+        if (warmEl) {
+            warmEl.value = '50';
+            const trackEl = document.getElementById('track');
+            if (trackEl) trackEl.style.setProperty('--p', '50%');
+            const info = getBatteryInfo(50);
+            const warmWordEl = document.getElementById('warmWord');
+            if (warmWordEl) warmWordEl.textContent = info.text;
+            const warmNumEl = document.getElementById('warmNum');
+            if (warmNumEl) warmNumEl.textContent = info.num;
+        }
+        const moodInput = document.getElementById('story') || document.getElementById('mood-input');
         if (moodInput) moodInput.value = '';
         if (window.jamendoAudio) {
             window.jamendoAudio.pause();
         }
         isPlayingMusic = false;
         
-        const currentHour = new Date().getHours();
-        if (typeof resolveThemeByEnv === 'function') {
-            const initialTheme = resolveThemeByEnv(currentHour, currentWeatherVal || 'Sunny');
-            document.body.style.backgroundColor = initialTheme.background;
-            const conceptEl = document.getElementById('theme-concept-text');
-            if (conceptEl) conceptEl.textContent = initialTheme.concept;
+        applyEmotionPalette(null);
+        paintTheme();
+        updateCaption();
+        swapTitle(DEFAULT_H1);
+
+        const subHint = document.getElementById('subHint');
+        const chipsBox = document.getElementById('chips');
+        if (subHint) subHint.hidden = true;
+        if (chipsBox) chipsBox.hidden = true;
+        const catsBox = document.getElementById('cats');
+        if (catsBox) {
+            catsBox.querySelectorAll('.main-emotion-card, .cat').forEach(x => x.setAttribute('aria-pressed', 'false'));
         }
 
         updateWizardView();
     });
 
     // AI Analysis Execution (/api/ai/analyze)
-    const analyzeBtn = document.getElementById('analyze-btn');
+    const analyzeBtn = document.getElementById('next') || document.getElementById('analyze-btn');
     const loader = document.getElementById('loader');
 
     if (analyzeBtn) {
@@ -1048,26 +1467,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const moodPrompt = document.getElementById('mood-input') ? document.getElementById('mood-input').value.trim() : '';
+            isDiarySavedForCurrentSession = false;
+            isBoardSharedForCurrentSession = false;
 
-            if (!moodPrompt && document.getElementById('mood-input')) {
+            const storyEl = document.getElementById('story') || document.getElementById('mood-input');
+            const moodPrompt = storyEl ? storyEl.value.trim() : '';
+
+            if (!moodPrompt) {
                 return showToast('오늘의 솔직한 기분을 입력해주세요.');
             }
 
             if (loader) {
                 loader.classList.remove('hidden');
-                // Allow a reflow before changing opacity
                 requestAnimationFrame(() => {
                     loader.classList.remove('opacity-0', 'pointer-events-none');
                     loader.classList.add('opacity-100', 'pointer-events-auto');
                 });
             }
-            document.getElementById('step-1-input').classList.add('hidden'); // hide input during load
+            document.getElementById('step-1-input').classList.add('hidden');
+            const heroSec = document.getElementById('hero-section');
+            if (heroSec) heroSec.classList.add('hidden');
             analyzeBtn.disabled = true;
 
             const loaderPercentage = document.getElementById('loader-percentage');
             const loaderBar = document.getElementById('loader-bar');
             const loaderText = document.getElementById('loader-text');
+            const loaderOrb = document.getElementById('loader-orb');
+            const loaderBreath = document.getElementById('loader-breath');
+
+            if (loaderOrb) {
+                loaderOrb.style.setProperty('--h', H);
+            }
+
+            let breathCount = 0;
+            if (loaderBreath) loaderBreath.textContent = '들이쉬고…';
+            const breathInterval = setInterval(() => {
+                breathCount++;
+                if (loaderBreath) {
+                    loaderBreath.textContent = breathCount % 2 === 0 ? '들이쉬고…' : '내쉬고…';
+                }
+            }, 2800);
             
             let currentProgress = 0;
             if (loaderPercentage) loaderPercentage.textContent = '0';
@@ -1099,6 +1538,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 300);
 
             try {
+                let data = null;
+                try {
                 const res = await fetch('/api/ai/analyze', {
                     method: 'POST',
                     headers: {
@@ -1107,10 +1548,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({
                         story: moodPrompt,
-                        situationTag: selectedMood,
-                        primaryCategory: HEALING_MOOD_DATA.find(c => c.id === expandedCategory)?.title || '미지정',
-                        batteryLevel: energyLevel,
-                        weather: currentWeatherVal,
+                        situationTag: sit || selectedMood || (cat ? cat.s[0] : '일상'),
+                        primaryCategory: cat ? cat.n : '미지정',
+                        batteryLevel: isBatteryInteracted ? energyLevel : null,
+                        weather: rawWeatherMain || 'Clear',
                         location: currentLocationVal,
                         userProfile: {
                             gender: sessionStorage.getItem('authGender') || '남성',
@@ -1119,13 +1560,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
 
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || '분석 실패');
+                if (res.ok) {
+                    data = await res.json();
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    const fallbackNotice = errData.notice || errData.message || "지금 그림과 시를 만드는 데 시간이 걸려요, 잠시 후 다시 시도해 주세요.";
+                    showToast(fallbackNotice);
+                    data = {
+                        isAiFallback: true,
+                        notice: fallbackNotice,
+                        poem: {
+                            title: "마음의 쉼표",
+                            stanza1: "복잡한 생각 잠시 내려놓고\n조용히 머무는 시간",
+                            stanza2: "나를 감싸는 온기 속에서\n천천히 숨을 고릅니다"
+                        },
+                        primaryCategory: cat ? cat.n : '미지정',
+                        situationTag: sit || selectedMood || '일상'
+                    };
+                }
+            } catch (netErr) {
+                console.warn('[AI 분석 네트워크 에러] 안전 Fallback 모드로 전환:', netErr.message);
+                const fallbackNotice = "지금 그림과 시를 만드는 데 시간이 걸려요, 잠시 후 다시 시도해 주세요.";
+                showToast(fallbackNotice);
+                data = {
+                    isAiFallback: true,
+                    notice: fallbackNotice,
+                    poem: {
+                        title: "마음의 쉼표",
+                        stanza1: "복잡한 생각 잠시 내려놓고\n조용히 머무는 시간",
+                        stanza2: "나를 감싸는 온기 속에서\n천천히 숨을 고릅니다"
+                    },
+                    primaryCategory: cat ? cat.n : '미지정',
+                    situationTag: sit || selectedMood || '일상'
+                };
+            }
 
-                currentAnalysis = data;
-                window.currentAnalysis = data;
-                generatedImageUrl = null;
-                window.generatedImageUrl = null;
+            if (data.isAiFallback && data.notice) {
+                showToast(data.notice);
+            }
+
+            currentAnalysis = data;
+            window.currentAnalysis = data;
+            generatedImageUrl = null;
+            window.generatedImageUrl = null;
                 
                 // Fetch Jamendo Track
                 jamendoTrackInfo = null;
@@ -1133,18 +1610,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.jamendoAudio.pause();
                     window.jamendoAudio = null;
                 }
-                const tags = data.structuredData?.aiMusicTags || [];
-                const bpm = data.structuredData?.tempoBpm || '';
-                await loadJamendoTrack(tags, bpm);
+                // 1) 선택된 세부 상황 객체의 jamendoSafeTag를 찾음
+                let targetTag = getSelectedJamendoSafeTag();
 
-                // Dynamic Background Color Transition using selectedThemeColor
-                if (selectedThemeColor) {
-                    data.themeColor = selectedThemeColor;
-                    document.body.style.backgroundColor = selectedThemeColor;
-                    document.body.style.transition = "background-color 2s ease";
+                // 2) jamendoSafeTag가 없을 때만 aiMusicTags를 참고하고, 허용 목록에 있는 값만 사용
+                if (!targetTag && data.structuredData?.aiMusicTags && Array.isArray(data.structuredData.aiMusicTags)) {
+                    for (const rawTag of data.structuredData.aiMusicTags) {
+                        const mapped = mapToValidJamendoTag(rawTag);
+                        if (mapped) {
+                            targetTag = mapped;
+                            break;
+                        }
+                    }
                 }
 
-                clearInterval(progressInterval);
+                const catName = cat ? cat.n : (currentAnalysis?.primaryCategory || '');
+                const sitName = sit || selectedMood || '';
+                const bpm = data.structuredData?.tempoBpm || '';
+
+                if (targetTag) {
+                    await loadJamendoTrack(targetTag, bpm, catName, sitName);
+                } else {
+                    // jamendoSafeTag가 없으면 음악을 요청하지 않고 플레이어를 숨김
+                    jamendoTrackInfo = null;
+                }
+
+                // Set themeColor for analysis and diary from currently selected emotion palette
+                const currentPalette = (cat && EMOTION_PALETTES[cat.n]) ? EMOTION_PALETTES[cat.n] : EMOTION_PALETTES.DEFAULT;
+                data.themeColor = currentPalette.bg;
+
+                clearInterval(progressInterval); clearInterval(breathInterval);
                 currentProgress = 100;
                 if (loaderPercentage) loaderPercentage.textContent = '100';
                 if (loaderBar) loaderBar.style.width = '100%';
@@ -1159,7 +1654,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateWizardView();
 
             } catch (err) {
-                clearInterval(progressInterval);
+                clearInterval(progressInterval); clearInterval(breathInterval);
                 showToast(err.message);
                 currentWizardStep = 1; // back to step 1 on fail
                 updateWizardView();
@@ -1222,20 +1717,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let isSubmitting = false;
+    let isDiarySavedForCurrentSession = false;
+    let isBoardSharedForCurrentSession = false;
 
     // Save to Diary (/api/diaries)
     async function saveToDiary() {
-    window.stopAllAudios();
+        window.stopAllAudios();
         if (!currentAnalysis || !generatedImageUrl) return;
         if (!token) return location.href = '/login.html';
-        if (isSubmitting) return;
 
+        if (isDiarySavedForCurrentSession) {
+            showToast('이미 일기장에 저장된 기록입니다.');
+            return;
+        }
+
+        if (isSubmitting) return;
         isSubmitting = true;
+
         const btn = document.getElementById('final-save-btn');
         const oldText = btn ? btn.innerHTML : '';
-        if (btn) btn.innerHTML = '저장 중...';
+        if (btn) {
+            btn.disabled = true;
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = '<span>⏳</span> <span class="font-editorial-serif">저장 중...</span>';
+        }
 
         try {
+            // [Requirement 1] 저장 시점에 실제 Jamendo 곡이 재생/준비 중이었을 때만 곡 정보 채우기
+            const isRealJamendoTrack = Boolean(
+                jamendoTrackInfo && 
+                jamendoTrackInfo.id && 
+                jamendoTrackInfo.name && 
+                jamendoTrackInfo.artist_name && 
+                jamendoTrackInfo.artist_name !== "Andante AI" &&
+                (!jamendoTrackInfo.audio || !jamendoTrackInfo.audio.includes('soundhelix.com'))
+            );
+            const musicPayload = isRealJamendoTrack ? {
+                music_mood: 'ID:' + jamendoTrackInfo.id,
+                music_title: jamendoTrackInfo.name,
+                music_artist: jamendoTrackInfo.artist_name,
+                music_duration: jamendoTrackInfo.duration || null,
+                music_image: jamendoTrackInfo.image || null
+            } : {
+                music_mood: null,
+                music_title: null,
+                music_artist: null,
+                music_duration: null,
+                music_image: null
+            };
+
             const res = await fetch('/api/diaries', {
                 method: 'POST',
                 headers: {
@@ -1246,22 +1776,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     weather: currentAnalysis.weather || 'Sunny',
                     mood: selectedMood,
                     theme: currentAnalysis.poem?.title || currentAnalysis.theme,
-                    music_mood: jamendoTrackInfo ? 'ID:' + jamendoTrackInfo.id : (currentAnalysis.structuredData?.musicGenre || currentAnalysis.music_mood),
                     image_base64: generatedImageUrl,
                     poem_text: (currentAnalysis.poem?.stanza1 || '') + '\n\n' + (currentAnalysis.poem?.stanza2 || ''),
-                    theme_color: currentAnalysis.themeColor || ''
+                    theme_color: currentAnalysis.themeColor || '',
+                    ...musicPayload
                 })
             });
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
-                showToast('💾 내 일기장에 저장되었습니다!');
-                if (btn) btn.innerHTML = '저장 완료!';
+                isDiarySavedForCurrentSession = true;
+                if (data.alreadySaved) {
+                    showToast('이미 일기장에 저장된 기록입니다.');
+                } else {
+                    showToast('💾 내 일기장에 저장되었습니다!');
+                }
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.pointerEvents = 'none';
+                    btn.style.opacity = '0.75';
+                    btn.innerHTML = '<span>✅</span> <span class="font-editorial-serif">저장 완료</span>';
+                }
             } else {
-                showToast('저장 실패');
-                if (btn) btn.innerHTML = oldText;
+                showToast('저장 실패: ' + (data.error || '잠시 후 다시 시도해 주세요.'));
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.pointerEvents = 'auto';
+                    btn.innerHTML = oldText;
+                }
             }
         } catch (e) {
-            showToast('오류 발생');
-            if (btn) btn.innerHTML = oldText;
+            showToast('오류가 발생했습니다.');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.innerHTML = oldText;
+            }
         } finally {
             isSubmitting = false;
         }
@@ -1271,19 +1820,53 @@ document.addEventListener('DOMContentLoaded', () => {
     async function shareToBoard() {
         if (!currentAnalysis || !generatedImageUrl) return;
         if (!token) return location.href = '/login.html';
+
+        if (isBoardSharedForCurrentSession) {
+            showToast('이미 갤러리에 공유된 기록입니다.');
+            return;
+        }
+
         if (isSubmitting) return;
 
-        const title = await NeoModal.prompt('공유할 제목을 입력하세요:', currentAnalysis.poem?.title || currentAnalysis.theme);
-        if (!title) return;
+        const defaultTitle = currentAnalysis.poem?.title || currentAnalysis.theme || '나의 오늘';
+        const title = await NeoModal.prompt('공유할 제목을 입력하세요:', defaultTitle);
+        if (!title || !title.trim()) return;
 
         isSubmitting = true;
         const btn = document.getElementById('final-share-btn');
         const oldText = btn ? btn.innerHTML : '';
-        if (btn) btn.innerHTML = '공유 중...';
+        if (btn) {
+            btn.disabled = true;
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = '<span>⏳</span> <span class="font-editorial-serif">공유 중...</span>';
+        }
 
-        const moodPrompt = document.getElementById('mood-input').value.trim();
+        const moodPrompt = (document.getElementById('story') || document.getElementById('mood-input'))?.value.trim() || '';
 
         try {
+            // [Requirement 1] 저장 시점에 실제 Jamendo 곡 정보 보관
+            const isRealJamendoTrack = Boolean(
+                jamendoTrackInfo && 
+                jamendoTrackInfo.id && 
+                jamendoTrackInfo.name && 
+                jamendoTrackInfo.artist_name && 
+                jamendoTrackInfo.artist_name !== "Andante AI" &&
+                (!jamendoTrackInfo.audio || !jamendoTrackInfo.audio.includes('soundhelix.com'))
+            );
+            const musicPayload = isRealJamendoTrack ? {
+                music_mood: 'ID:' + jamendoTrackInfo.id,
+                music_title: jamendoTrackInfo.name,
+                music_artist: jamendoTrackInfo.artist_name,
+                music_duration: jamendoTrackInfo.duration || null,
+                music_image: jamendoTrackInfo.image || null
+            } : {
+                music_mood: null,
+                music_title: null,
+                music_artist: null,
+                music_duration: null,
+                music_image: null
+            };
+
             const res = await fetch('/api/boards', {
                 method: 'POST',
                 headers: {
@@ -1296,21 +1879,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     weather: currentAnalysis.weather || 'Sunny',
                     mood: selectedMood,
                     theme: currentAnalysis.poem?.title || currentAnalysis.theme,
-                    music_mood: jamendoTrackInfo ? 'ID:' + jamendoTrackInfo.id : (currentAnalysis.structuredData?.musicGenre || currentAnalysis.music_mood),
                     image_base64: generatedImageUrl,
-                    poem_text: (currentAnalysis.poem?.stanza1 || '') + '\n\n' + (currentAnalysis.poem?.stanza2 || '')
+                    poem_text: (currentAnalysis.poem?.stanza1 || '') + '\n\n' + (currentAnalysis.poem?.stanza2 || ''),
+                    theme_color: currentAnalysis.themeColor || (cat && typeof EMOTION_PALETTES !== 'undefined' && EMOTION_PALETTES[cat.n] ? EMOTION_PALETTES[cat.n].bg : '#FDFBD4'),
+                    ...musicPayload
                 })
             });
             if (res.ok) {
+                isBoardSharedForCurrentSession = true;
                 showToast('🌐 공유 갤러리에 등록되었습니다!');
-                if (btn) btn.innerHTML = '공유 완료!';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.pointerEvents = 'none';
+                    btn.style.opacity = '0.75';
+                    btn.innerHTML = '<span>✅</span> <span class="font-editorial-serif">공유 완료</span>';
+                }
             } else {
-                showToast('공유 실패');
-                if (btn) btn.innerHTML = oldText;
+                const errData = await res.json().catch(() => ({})); showToast('공유 실패: ' + (errData.error || '잠시 후 다시 시도해 주세요.'));
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.pointerEvents = 'auto';
+                    btn.innerHTML = oldText;
+                }
             }
         } catch (e) {
-            showToast('오류 발생');
-            if (btn) btn.innerHTML = oldText;
+            console.error('shareToBoard error:', e);
+            showToast('오류가 발생했습니다.');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.pointerEvents = 'auto';
+                btn.innerHTML = oldText;
+            }
         } finally {
             isSubmitting = false;
         }
@@ -1320,6 +1919,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (diaryBtn) {
         diaryBtn.onclick = async () => {
             if (!token) return showToast('로그인이 필요합니다.');
+            if (window.history && window.history.replaceState && !window.location.search.includes('view=diary')) {
+                window.history.replaceState({ view: 'diary' }, '', '/?view=diary');
+            }
             const diarySection = document.getElementById('diary-section');
             const mainContent = document.getElementById('main-content');
             const postsContainer = document.getElementById('posts-container');
@@ -1399,71 +2001,461 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    async function loadDiaryMusicPlayer(musicMood) {
+    function setupDiaryCustomPlayer(audioEl, diaryId, trackDuration) {
+        if (!audioEl) return;
+        const playBtn = document.getElementById(`diary-custom-play-btn-${diaryId}`);
+        const vinylWrapper = document.getElementById(`diary-vinyl-wrapper-${diaryId}`);
+        const playIcon = document.getElementById(`diary-play-icon-${diaryId}`);
+        const pauseIcon = document.getElementById(`diary-pause-icon-${diaryId}`);
+        const vinylDisc = document.getElementById(`diary-vinyl-disc-${diaryId}`);
+        const progressContainer = document.getElementById(`diary-progress-container-${diaryId}`);
+        const progressFill = document.getElementById(`diary-progress-fill-${diaryId}`);
+        const curTimeEl = document.getElementById(`diary-audio-cur-time-${diaryId}`);
+        const totalTimeEl = document.getElementById(`diary-audio-total-time-${diaryId}`);
+
+        function formatTime(sec) {
+            if (!sec || isNaN(sec)) return '0:00';
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        if (trackDuration && totalTimeEl) {
+            totalTimeEl.textContent = formatTime(trackDuration);
+        }
+
+        audioEl.addEventListener('loadedmetadata', () => {
+            if (totalTimeEl) totalTimeEl.textContent = formatTime(audioEl.duration);
+        });
+
+        audioEl.addEventListener('timeupdate', () => {
+            if (!audioEl.duration) return;
+            const pct = (audioEl.currentTime / audioEl.duration) * 100;
+            if (progressFill) progressFill.style.width = `${pct}%`;
+            if (curTimeEl) curTimeEl.textContent = formatTime(audioEl.currentTime);
+            if (totalTimeEl && (!trackDuration || totalTimeEl.textContent === '--:--')) {
+                totalTimeEl.textContent = formatTime(audioEl.duration);
+            }
+        });
+
+        audioEl.addEventListener('play', () => {
+            pauseBGM();
+            if (playIcon) playIcon.classList.add('hidden');
+            if (pauseIcon) pauseIcon.classList.remove('hidden');
+            if (vinylDisc) vinylDisc.classList.add('vinyl-spin');
+        });
+
+        audioEl.addEventListener('pause', () => {
+            if (playIcon) playIcon.classList.remove('hidden');
+            if (pauseIcon) pauseIcon.classList.add('hidden');
+            if (vinylDisc) vinylDisc.classList.remove('vinyl-spin');
+        });
+
+        audioEl.addEventListener('ended', () => {
+            if (playIcon) playIcon.classList.remove('hidden');
+            if (pauseIcon) pauseIcon.classList.add('hidden');
+            if (vinylDisc) vinylDisc.classList.remove('vinyl-spin');
+            if (progressFill) progressFill.style.width = '0%';
+            if (curTimeEl) curTimeEl.textContent = '0:00';
+        });
+
+        const togglePlay = () => {
+            if (audioEl.paused) {
+                audioEl.play().catch(e => console.warn('Audio play error:', e.message));
+            } else {
+                audioEl.pause();
+            }
+        };
+
+        if (playBtn) playBtn.onclick = togglePlay;
+        if (vinylWrapper) vinylWrapper.onclick = togglePlay;
+
+        if (progressContainer) {
+            progressContainer.onclick = (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const clickPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                if (audioEl.duration) {
+                    audioEl.currentTime = clickPos * audioEl.duration;
+                }
+            };
+        }
+    }
+
+    async function loadDiaryMusicPlayer(diary) {
         const playerContainer = document.getElementById('diary-music-player-container');
         if (!playerContainer) return;
         
-        playerContainer.style.opacity = '0';
-        playerContainer.innerHTML = '';
+        let musicTitle = (diary && (diary.MUSIC_TITLE || diary.music_title)) ? String(diary.MUSIC_TITLE || diary.music_title).trim() : '';
+        let musicArtist = (diary && (diary.MUSIC_ARTIST || diary.music_artist)) ? String(diary.MUSIC_ARTIST || diary.music_artist).trim() : '';
+        let musicImage = (diary && (diary.MUSIC_IMAGE || diary.music_image)) ? String(diary.MUSIC_IMAGE || diary.music_image).trim() : '';
+        let musicDuration = (diary && (diary.MUSIC_DURATION || diary.music_duration)) ? parseInt(diary.MUSIC_DURATION || diary.music_duration) : null;
+        const musicMood = (diary && (diary.MUSIC_MOOD || diary.music_mood)) ? String(diary.MUSIC_MOOD || diary.music_mood).trim() : '';
+        const diaryId = (diary && (diary.ID || diary.id)) || '미지정';
 
-        try {
-            let track = null;
-            let displayTag = musicMood;
+        let trackId = null;
+        if (musicMood && musicMood.startsWith('ID:')) {
+            trackId = musicMood.split(':')[1];
+        }
 
-            if (musicMood && musicMood.startsWith('ID:')) {
-                const trackId = musicMood.split(':')[1];
-                const jamendoRes = await fetch(`/api/music?id=${trackId}`);
-                const jamendoData = await jamendoRes.json();
-                if (jamendoData.success && jamendoData.track) {
-                    track = jamendoData.track;
-                    displayTag = '저장된 추천 곡';
-                }
-            }
-            
-            if (!track) {
-                const safeTag = mapToValidJamendoTag(musicMood);
-                displayTag = safeTag;
-                const jamendoRes = await fetch(`/api/music?tag=${safeTag}&seed=${d.ID}`);
-                const jamendoData = await jamendoRes.json();
-                if (jamendoData.success && jamendoData.track) {
-                    track = jamendoData.track;
-                }
-            }
+        // 곡 제목도 없고 유효한 Jamendo ID도 없으면 완전히 숨김
+        if (!musicTitle && !trackId) {
+            playerContainer.style.display = 'none';
+            playerContainer.style.opacity = '0';
+            playerContainer.innerHTML = '';
+            return;
+        }
 
-            if (!track) {
-                console.warn('Jamendo API returned 0 results or failed. Using fallback track.');
-                track = {
-                    name: "마음을 다독이는 피아노 (Healing Piano)",
-                    artist_name: "Andante AI",
-                    audio: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-                    image: ""
-                };
-                displayTag = '기본 힐링 곡';
-            }
-
+        // 1) 신규 일기 (곡 이름이 저장되어 있는 경우)
+        if (musicTitle) {
+            playerContainer.style.display = 'block';
             playerContainer.innerHTML = `
-                <div class="glass-panel p-4 flex items-center justify-between rounded-2xl mx-auto border border-stone-200/80 bg-white/85 backdrop-blur-md shadow-sm" style="width: 100%; box-sizing: border-box;">
-                    <div class="flex items-center gap-4">
-                        <div style="width: 50px; height: 50px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.06); flex-shrink: 0; background-color: #f5f5f4; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04);">
-                            ${track.image ? `<img src="${track.image}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span class="text-xl">🎵</span>`}
+                <div class="glass-panel p-3.5 sm:p-4 px-4 sm:px-6 flex items-center justify-between rounded-2xl mx-auto border border-stone-200/80 bg-white/90 backdrop-blur-md shadow-sm gap-3 sm:gap-4 transition-all duration-300" style="width: 100%; box-sizing: border-box;">
+                    <!-- Left: Vinyl Album Art + Track Info -->
+                    <div class="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+                        <div class="relative w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 cursor-pointer group" id="diary-vinyl-wrapper-${diaryId}" title="재생 / 일시정지">
+                            <div id="diary-vinyl-disc-${diaryId}" class="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden shadow-md border-2 border-stone-800/10 relative flex items-center justify-center bg-stone-900 transition-transform duration-300 group-hover:scale-105">
+                                ${musicImage ? `<img id="diary-cover-img-${diaryId}" src="${musicImage}" alt="Album Art" class="w-full h-full object-cover" />` : `<span id="diary-cover-emoji-${diaryId}" class="text-lg">🎵</span>`}
+                                <div class="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/95 border border-stone-300 shadow-sm flex items-center justify-center pointer-events-none">
+                                    <div class="w-1 h-1 rounded-full bg-stone-800"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-[11px] font-medium text-stone-500 mb-0.5 tracking-wider font-editorial-sub">🎧 힐링 트랙 · ${displayTag.replace('ID:','')}</p>
-                            <h4 class="text-sm font-medium text-stone-800 break-all line-clamp-1 font-editorial-serif" style="margin: 0;">${track.name}</h4>
+                        <div class="min-w-0 flex-1 pr-1 sm:pr-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="text-xs sm:text-sm font-medium text-stone-800 truncate font-editorial-serif tracking-tight" style="margin: 0;">${musicTitle}</h4>
+                                <span id="diary-music-unavailable-${diaryId}" class="text-[10px] sm:text-[11px] text-stone-400 font-sans tracking-tight hidden">지금은 재생할 수 없어요</span>
+                            </div>
+                            ${musicArtist ? `<p class="text-[10px] sm:text-[11px] font-medium text-stone-500 mt-0.5 truncate font-editorial-sub">by ${musicArtist}</p>` : ''}
                         </div>
                     </div>
-                    <audio controls src="${track.audio}" style="height: 36px; max-width: 280px;"></audio>
+
+                    <!-- Right: Minimalist Controls -->
+                    <div id="diary-audio-slot-${diaryId}" class="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+                        <span class="text-xs text-stone-300 font-mono">음원 연결 중...</span>
+                    </div>
                 </div>
             `;
-            const audioEl = playerContainer.querySelector('audio');
-            if (audioEl) {
-                audioEl.addEventListener('play', pauseBGM);
+            setTimeout(() => { playerContainer.style.opacity = '1'; }, 50);
+
+            const audioSlot = document.getElementById(`diary-audio-slot-${diaryId}`);
+            const unavailableNotice = document.getElementById(`diary-music-unavailable-${diaryId}`);
+            const vinylDisc = document.getElementById(`diary-vinyl-disc-${diaryId}`);
+
+            if (!trackId) {
+                console.warn(`[일기 음악 조회 실패] 일기 ID: ${diaryId}, 곡 ID: 없음, 실패 사유: 트랙 ID 없음`);
+                if (audioSlot) audioSlot.innerHTML = '';
+                if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+                return;
             }
-            setTimeout(() => { playerContainer.style.opacity = '1'; }, 100);
-        } catch (err) {
-            console.error('Failed to load diary music', err);
+
+            try {
+                const res = await fetch(`/api/music?id=${encodeURIComponent(trackId)}&diary_id=${encodeURIComponent(diaryId)}`);
+                if (!res.ok) {
+                    const reason = res.status === 404 ? '404 (음원 없음)' : `HTTP ${res.status}`;
+                    console.warn(`[일기 음악 조회 실패] 일기 ID: ${diaryId}, 곡 ID: ${trackId}, 실패 사유: ${reason}`);
+                    if (audioSlot) audioSlot.innerHTML = '';
+                    if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+                    return;
+                }
+
+                const data = await res.json();
+                if (data.success && data.track && data.track.audio) {
+                    const track = data.track;
+                    // 커버 이미지 갱신
+                    if (track.image && vinylDisc) {
+                        const coverImg = document.getElementById(`diary-cover-img-${diaryId}`);
+                        if (coverImg) {
+                            coverImg.src = track.image;
+                        } else {
+                            vinylDisc.innerHTML = `
+                                <img id="diary-cover-img-${diaryId}" src="${track.image}" alt="Album Art" class="w-full h-full object-cover" />
+                                <div class="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/95 border border-stone-300 shadow-sm flex items-center justify-center pointer-events-none">
+                                    <div class="w-1 h-1 rounded-full bg-stone-800"></div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    if (audioSlot) {
+                        audioSlot.innerHTML = `
+                            <audio id="diary-native-audio-${diaryId}" src="${track.audio}" preload="metadata"></audio>
+                            <span id="diary-audio-cur-time-${diaryId}" class="text-[10px] sm:text-[11px] font-mono text-stone-400 w-7 sm:w-8 text-right select-none">0:00</span>
+                            <div id="diary-progress-container-${diaryId}" class="relative w-20 sm:w-40 h-1.5 hover:h-2 bg-stone-200/80 rounded-full cursor-pointer transition-all duration-150 overflow-hidden flex items-center group">
+                                <div id="diary-progress-fill-${diaryId}" class="h-full bg-stone-800 rounded-full w-0 transition-all duration-75"></div>
+                            </div>
+                            <span id="diary-audio-total-time-${diaryId}" class="text-[10px] sm:text-[11px] font-mono text-stone-400 w-7 sm:w-8 select-none">--:--</span>
+                            <button id="diary-custom-play-btn-${diaryId}" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md transition-all active:scale-95 flex-shrink-0 cursor-pointer ml-1" title="재생">
+                                <svg id="diary-play-icon-${diaryId}" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <svg id="diary-pause-icon-${diaryId}" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            </button>
+                        `;
+                        const audioEl = document.getElementById(`diary-native-audio-${diaryId}`);
+                        setupDiaryCustomPlayer(audioEl, diaryId, track.duration || musicDuration);
+                    }
+                } else {
+                    console.warn(`[일기 음악 조회 실패] 일기 ID: ${diaryId}, 곡 ID: ${trackId}, 실패 사유: 응답에 오디오 URL 없음`);
+                    if (audioSlot) audioSlot.innerHTML = '';
+                    if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.warn(`[일기 음악 조회 실패] 일기 ID: ${diaryId}, 곡 ID: ${trackId}, 실패 사유: 네트워크 오류 (${err.message})`);
+                if (audioSlot) audioSlot.innerHTML = '';
+                if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+            }
+            return;
+        }
+
+        // 2) 기존 일기 (곡 이름 컬럼은 비어있으나 trackId는 있는 경우: Jamendo에서 복원 로드)
+        if (!musicTitle && trackId) {
+            try {
+                const res = await fetch(`/api/music?id=${encodeURIComponent(trackId)}&diary_id=${encodeURIComponent(diaryId)}`);
+                if (!res.ok) {
+                    playerContainer.style.display = 'none';
+                    playerContainer.style.opacity = '0';
+                    playerContainer.innerHTML = '';
+                    return;
+                }
+                const data = await res.json();
+                if (data.success && data.track && data.track.audio) {
+                    const track = data.track;
+                    musicTitle = track.name || '추천 음악';
+                    musicArtist = track.artist_name || '';
+                    musicImage = track.image || '';
+                    musicDuration = track.duration || null;
+                    if (diary) {
+                        diary.MUSIC_TITLE = musicTitle;
+                        diary.MUSIC_ARTIST = musicArtist;
+                        diary.MUSIC_IMAGE = musicImage;
+                        diary.MUSIC_DURATION = musicDuration;
+                    }
+
+                    playerContainer.style.display = 'block';
+                    playerContainer.innerHTML = `
+                        <div class="glass-panel p-3.5 sm:p-4 px-4 sm:px-6 flex items-center justify-between rounded-2xl mx-auto border border-stone-200/80 bg-white/90 backdrop-blur-md shadow-sm gap-3 sm:gap-4 transition-all duration-300" style="width: 100%; box-sizing: border-box;">
+                            <!-- Left: Vinyl Album Art + Track Info -->
+                            <div class="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+                                <div class="relative w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 cursor-pointer group" id="diary-vinyl-wrapper-${diaryId}" title="재생 / 일시정지">
+                                    <div id="diary-vinyl-disc-${diaryId}" class="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden shadow-md border-2 border-stone-800/10 relative flex items-center justify-center bg-stone-900 transition-transform duration-300 group-hover:scale-105">
+                                        ${musicImage ? `<img id="diary-cover-img-${diaryId}" src="${musicImage}" alt="Album Art" class="w-full h-full object-cover" />` : `<span id="diary-cover-emoji-${diaryId}" class="text-lg">🎵</span>`}
+                                        <div class="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/95 border border-stone-300 shadow-sm flex items-center justify-center pointer-events-none">
+                                            <div class="w-1 h-1 rounded-full bg-stone-800"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1 pr-1 sm:pr-2">
+                                    <h4 class="text-xs sm:text-sm font-medium text-stone-800 truncate font-editorial-serif tracking-tight" style="margin: 0;">${musicTitle}</h4>
+                                    ${musicArtist ? `<p class="text-[10px] sm:text-[11px] font-medium text-stone-500 mt-0.5 truncate font-editorial-sub">by ${musicArtist}</p>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Right: Minimalist Controls -->
+                            <div id="diary-audio-slot-${diaryId}" class="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+                                <audio id="diary-native-audio-${diaryId}" src="${track.audio}" preload="metadata"></audio>
+                                <span id="diary-audio-cur-time-${diaryId}" class="text-[10px] sm:text-[11px] font-mono text-stone-400 w-7 sm:w-8 text-right select-none">0:00</span>
+                                <div id="diary-progress-container-${diaryId}" class="relative w-20 sm:w-40 h-1.5 hover:h-2 bg-stone-200/80 rounded-full cursor-pointer transition-all duration-150 overflow-hidden flex items-center group">
+                                    <div id="diary-progress-fill-${diaryId}" class="h-full bg-stone-800 rounded-full w-0 transition-all duration-75"></div>
+                                </div>
+                                <span id="diary-audio-total-time-${diaryId}" class="text-[10px] sm:text-[11px] font-mono text-stone-400 w-7 sm:w-8 select-none">--:--</span>
+                                <button id="diary-custom-play-btn-${diaryId}" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md transition-all active:scale-95 flex-shrink-0 cursor-pointer ml-1" title="재생">
+                                    <svg id="diary-play-icon-${diaryId}" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    <svg id="diary-pause-icon-${diaryId}" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    setTimeout(() => { playerContainer.style.opacity = '1'; }, 50);
+                    const audioEl = document.getElementById(`diary-native-audio-${diaryId}`);
+                    setupDiaryCustomPlayer(audioEl, diaryId, track.duration || musicDuration);
+                } else {
+                    playerContainer.style.display = 'none';
+                    playerContainer.style.opacity = '0';
+                    playerContainer.innerHTML = '';
+                }
+            } catch (err) {
+                playerContainer.style.display = 'none';
+                playerContainer.style.opacity = '0';
+                playerContainer.innerHTML = '';
+            }
         }
     }
+
+    // 🌿 일기장에 저장된 감정 및 상황에 따른 테마/그라데이션 분석 함수
+    function getDiaryThemeAndGradient(d) {
+        if (!d) return { gradient: 'linear-gradient(135deg, #F8CAD3 0%, #F2B2C0 100%)', color: '#F8CAD3', cat: null, sit: null };
+
+        const moodStr = String(d.MOOD || '').trim();
+        let matchedCat = null;
+        let matchedSit = null;
+
+        // 1. 세부 상황 48종 라벨과 직접 매칭
+        for (const cat of HEALING_MOOD_DATA) {
+            const sit = cat.subSituations.find(s => 
+                s.label === moodStr || 
+                (moodStr && s.label.includes(moodStr)) || 
+                (moodStr && moodStr.includes(s.label))
+            );
+            if (sit) {
+                matchedCat = cat;
+                matchedSit = sit;
+                break;
+            }
+        }
+
+        // 2. 대분류 감정 ID 또는 한글 타이틀 매칭
+        if (!matchedCat) {
+            for (const cat of HEALING_MOOD_DATA) {
+                const cleanTitle = cat.title.replace(/[^\uAC00-\uD7AFa-zA-Z]/g, '');
+                const cleanMood = moodStr.replace(/[^\uAC00-\uD7AFa-zA-Z]/g, '');
+                if (cat.id === moodStr || (cleanMood && (cleanTitle.includes(cleanMood) || cleanMood.includes(cleanTitle)))) {
+                    matchedCat = cat;
+                    break;
+                }
+            }
+        }
+
+        // 3. 키워드 기반 자연어 감정 탐색 (Mood, Theme, PoemText)
+        if (!matchedCat) {
+            const textToSearch = `${moodStr} ${d.THEME || ''} ${d.POEM_TEXT || ''}`;
+            const keywordMap = {
+                LOVE: ['사랑', '설렘', '두근', '연인', '짝사랑', '호감', '마음', '고백'],
+                DOWN: ['가라앉', '이별', '우울', '슬픔', '눈물', '외로', '먹먹', '상처', '지침', '아픔'],
+                OVERLOAD: ['복잡', '갈등', '스트레스', '생각', '화', '다툼', '마찰', '불안', '혼란', '분통'],
+                DEPLETED: ['쉼', '휴식', '피곤', '소진', '기운', '번아웃', '무기력', '방전', '지친'],
+                CALM: ['고요', '사색', '평온', '차분', '산책', '새벽', '달빛', '밤하늘', '바람'],
+                ACTIVE: ['영감', '활력', '열정', '성취', '도전', '텐션', '의욕', '희망', '에너지']
+            };
+            for (const [catId, words] of Object.entries(keywordMap)) {
+                if (words.some(w => textToSearch.includes(w))) {
+                    matchedCat = HEALING_MOOD_DATA.find(c => c.id === catId);
+                    break;
+                }
+            }
+        }
+
+        // 4. 감정 카테고리에 매칭된 경우 고유 그라데이션 및 악센트 컬러 추출
+        if (matchedCat && MOOD_GRADIENT_BASES[matchedCat.id]) {
+            const palette = MOOD_GRADIENT_BASES[matchedCat.id].high;
+            const gradient = `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1]} 100%)`;
+            const baseColor = matchedSit?.themeColor || palette[0];
+            return { gradient, color: baseColor, cat: matchedCat, sit: matchedSit };
+        }
+
+        // 5. 저장된 THEME_COLOR 가 존재하는 경우
+        let rawColor = d.THEME_COLOR;
+        if (rawColor && !rawColor.includes('oklch') && (rawColor.startsWith('#') || rawColor.startsWith('rgb'))) {
+            return {
+                gradient: `linear-gradient(135deg, ${rawColor} 0%, rgba(255, 255, 255, 0.85) 100%)`,
+                color: rawColor,
+                cat: null,
+                sit: null
+            };
+        }
+
+        // 기본값: 설렘 & 사랑 핑크
+        return {
+            gradient: 'linear-gradient(135deg, #F8CAD3 0%, #F2B2C0 100%)',
+            color: '#F8CAD3',
+            cat: HEALING_MOOD_DATA[0],
+            sit: null
+        };
+    }
+    window.getDiaryThemeAndGradient = getDiaryThemeAndGradient;
+
+    // 🌿 일기장의 감정 태그 및 테마를 분석하여 전역 팔레트 매핑
+    function getDiaryPalette(d) {
+        if (!d) return EMOTION_PALETTES.DEFAULT;
+        const moodStr = String(d.MOOD || '').trim();
+
+        // 1. 대분류 감정명 직접 매칭 (예: "설렘 & 사랑")
+        if (EMOTION_PALETTES[moodStr]) {
+            return EMOTION_PALETTES[moodStr];
+        }
+
+        // 2. CATS 세부 상황 태그 매칭
+        if (typeof CATS !== 'undefined') {
+            for (const catItem of CATS) {
+                if (catItem.s && catItem.s.some(s => s === moodStr || (moodStr && s.includes(moodStr)) || (moodStr && moodStr.includes(s)))) {
+                    if (EMOTION_PALETTES[catItem.n]) return EMOTION_PALETTES[catItem.n];
+                }
+            }
+        }
+
+        // 3. HEALING_MOOD_DATA 세부 상황 및 ID 매칭
+        const ID_TO_CAT_NAME = {
+            LOVE: '설렘 & 사랑',
+            DOWN: '가라앉는 마음 & 이별',
+            OVERLOAD: '복잡한 생각 & 갈등',
+            DEPLETED: '지친 하루 & 쉼의 필요',
+            CALM: '잔잔한 고요 & 사색',
+            ACTIVE: '반짝이는 영감 & 활력'
+        };
+        if (typeof HEALING_MOOD_DATA !== 'undefined') {
+            for (const hCat of HEALING_MOOD_DATA) {
+                const hasSit = hCat.subSituations && hCat.subSituations.some(s => 
+                    s.label === moodStr || 
+                    (moodStr && s.label.includes(moodStr)) || 
+                    (moodStr && moodStr.includes(s.label))
+                );
+                if (hasSit || hCat.id === moodStr) {
+                    const catName = ID_TO_CAT_NAME[hCat.id];
+                    if (catName && EMOTION_PALETTES[catName]) return EMOTION_PALETTES[catName];
+                }
+            }
+        }
+
+        // 4. 영문 ID 매칭
+        if (ID_TO_CAT_NAME[moodStr]) {
+            return EMOTION_PALETTES[ID_TO_CAT_NAME[moodStr]];
+        }
+
+        // 5. 저장된 THEME_COLOR 헥사코드 매칭
+        const rawColor = String(d.THEME_COLOR || '').trim().toLowerCase();
+        if (rawColor) {
+            for (const pal of Object.values(EMOTION_PALETTES)) {
+                if (pal.bg && pal.bg.toLowerCase() === rawColor) return pal;
+            }
+            if (rawColor === '#fcaf7e' || rawColor === '#ffcc80') return EMOTION_PALETTES['지친 하루 & 쉼의 필요'];
+            if (rawColor === '#b3fcbb' || rawColor === '#c4f5c9') return EMOTION_PALETTES['잔잔한 고요 & 사색'];
+            if (rawColor === '#f2c7c7' || rawColor === '#ffccd5') return EMOTION_PALETTES['설렘 & 사랑'];
+            if (rawColor === '#bdddfc' || rawColor === '#c6dcf2') return EMOTION_PALETTES['가라앉는 마음 & 이별'];
+            if (rawColor === '#b5c7eb' || rawColor === '#d6c6e1') return EMOTION_PALETTES['복잡한 생각 & 갈등'];
+            if (rawColor === '#efd9aa' || rawColor === '#ffe8b3') return EMOTION_PALETTES['반짝이는 영감 & 활력'];
+        }
+
+        // 6. 자연어 키워드 매칭
+        const textToSearch = `${moodStr} ${d.THEME || ''} ${d.POEM_TEXT || ''}`;
+        const keywordMap = {
+            '설렘 & 사랑': ['사랑', '설렘', '두근', '연인', '짝사랑', '호감', '고백'],
+            '가라앉는 마음 & 이별': ['가라앉', '이별', '우울', '슬픔', '눈물', '외로', '먹먹', '상처', '아픔'],
+            '복잡한 생각 & 갈등': ['복잡', '갈등', '스트레스', '화', '다툼', '마찰', '불안', '혼란', '분통', '잡생각', '자존심'],
+            '지친 하루 & 쉼의 필요': ['쉼', '휴식', '피곤', '소진', '기운', '번아웃', '무기력', '방전', '지친', '잠수'],
+            '잔잔한 고요 & 사색': ['고요', '사색', '평온', '차분', '산책', '새벽', '달빛', '밤하늘', '바람', '거리감'],
+            '반짝이는 영감 & 활력': ['영감', '활력', '열정', '성취', '도전', '텐션', '의욕', '희망', '에너지', '목표', '개운']
+        };
+        for (const [catName, words] of Object.entries(keywordMap)) {
+            if (words.some(w => textToSearch.includes(w))) {
+                return EMOTION_PALETTES[catName];
+            }
+        }
+
+        // 7. 직접 지정된 커스텀 컬러인 경우
+        if (rawColor && !rawColor.includes('oklch') && (rawColor.startsWith('#') || rawColor.startsWith('rgb'))) {
+            return { bg: d.THEME_COLOR, sel: d.THEME_COLOR };
+        }
+
+        return EMOTION_PALETTES.DEFAULT;
+    }
+    window.getDiaryPalette = getDiaryPalette;
+
+    function applyDiaryEmotion(d) {
+        const pal = getDiaryPalette(d);
+        document.documentElement.style.setProperty('--bg', pal.bg);
+        if (pal.sel) {
+            document.documentElement.style.setProperty('--sel', pal.sel);
+        }
+        return pal;
+    }
+    window.applyDiaryEmotion = applyDiaryEmotion;
 
     function renderDiaryBook() {
         const diaries = window.cachedDiaries;
@@ -1472,31 +2464,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!diaries || !diaries[idx]) return;
 
         const d = diaries[idx];
-        let themeColor = d.THEME_COLOR;
-        
-        // Fix for old faulty AI generation
-        if (themeColor && themeColor.includes('oklch') && !/\d/.test(themeColor)) {
-            themeColor = null; 
-        }
-        if (themeColor) {
-            const lowerColor = themeColor.toLowerCase();
-            if (lowerColor === 'blue' || lowerColor === '#0000ff' || lowerColor === '푸른빛') themeColor = '#ccf2ff';
-            if (lowerColor === 'red' || lowerColor === '#ff0000' || lowerColor === '붉은빛') themeColor = '#ffcccc';
-            if (lowerColor === 'yellow' || lowerColor === '#ffff00' || lowerColor === '노란빛') themeColor = '#fff5cc';
-            if (lowerColor === 'green' || lowerColor === '#00ff00' || lowerColor === '초록빛') themeColor = '#ccffcc';
-        }
 
-        // 동적 배경색 적용 (기본값 설정 후 유효한 색상으로 덮어씌움)
-        document.body.style.transition = 'background-color 1s ease';
-        document.body.style.backgroundColor = 'var(--background)'; // Default reset
-        
-        if (themeColor) {
-            // setTimeout ensures the browser processes the default reset first, 
-            // then transitions smoothly to the new theme color if valid.
-            setTimeout(() => {
-                document.body.style.backgroundColor = themeColor;
-            }, 50);
-        }
+        // 🌿 일기장에 저장된 감정 태그에 맞춰 배경색(--bg) 및 테마 동적 적용
+        const diaryPalette = applyDiaryEmotion(d);
+
+        let weatherEmoji = '☀️';
+        const wStr = String(d.WEATHER || '').toLowerCase();
+        if (wStr.includes('rain') || wStr.includes('drizzle') || wStr.includes('비')) weatherEmoji = '🌧️';
+        else if (wStr.includes('snow') || wStr.includes('눈')) weatherEmoji = '❄️';
+        else if (wStr.includes('cloud') || wStr.includes('overcast') || wStr.includes('흐림')) weatherEmoji = '☁️';
+        else if (wStr.includes('thunder') || wStr.includes('천둥')) weatherEmoji = '⛈️';
 
         const dateStr = new Date(d.CREATED_AT).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\.$/, '');
         const isFirst = idx === 0;
@@ -1539,9 +2516,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- Right Page -->
                     <div class="book-page right-page">
                         <div class="page-header right-header">
-                            <div class="mood-weather">
-                                <span>🔆</span>
-                                <span>${d.WEATHER} · ${d.MOOD}</span>
+                            <div class="mood-weather flex items-center gap-2">
+                                <span>${weatherEmoji}</span>
+                                <span class="font-medium">${d.WEATHER || '맑음'}</span>
+                                <span class="text-stone-300">·</span>
+                                <span class="diary-mood-badge px-2.5 py-0.5 rounded-full text-xs font-serif font-medium border border-black/5" style="background-color: ${diaryPalette.bg}; color: #111111;">${d.MOOD || '기록된 감정'}</span>
                             </div>
                             <div class="page-pagination">
                                 ${currentNum} / ${totalNum}
@@ -1569,7 +2548,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         // Load music player for this diary entry
-        loadDiaryMusicPlayer(d.MUSIC_MOOD);
+        loadDiaryMusicPlayer(d);
     }
 
     const closePostsBtn = document.getElementById('close-posts-btn');
@@ -1587,14 +2566,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 playerContainer.innerHTML = ''; // Stop music playback
             }
             
-            // Restore original background if themeColor exists, else default
-            if (currentAnalysis && currentAnalysis.themeColor) {
-                document.body.style.backgroundColor = currentAnalysis.themeColor;
-            } else {
-                document.body.style.backgroundColor = 'var(--background)';
+            // 메인 화면으로 복귀 시 현재 메인에서 선택된 감정 배경 복원
+            applyEmotionPalette(cat ? cat.n : null);
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname);
             }
         };
     }
+
+    // URL 파라미터 체크 (?view=diary 또는 ?diary=true 또는 #diary) -> 자동으로 내 일기장 서가 열기
+    const checkUrlForDiaryView = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('view') === 'diary' || urlParams.get('diary') === 'true' || window.location.hash === '#diary') {
+            if (diaryBtn) {
+                diaryBtn.click();
+            }
+        }
+    };
+    checkUrlForDiaryView();
+
+    window.addEventListener('popstate', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('view') === 'diary' || window.location.hash === '#diary') {
+            if (diaryBtn) diaryBtn.click();
+        } else {
+            const closeBtn = document.getElementById('close-posts-btn');
+            if (closeBtn) closeBtn.click();
+        }
+    });
 });
 
 

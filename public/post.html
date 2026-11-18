@@ -3,103 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>작품 감상 - Andante</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <title>작품 감상 - 안단테 (Andante)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="modal.js"></script>
+    <script src="modal.js?v=2"></script>
+    <style>
+        body {
+            background-color: var(--bg, #FDFBD4);
+            color: var(--ink, #111111);
+            min-height: 100vh;
+        }
+    </style>
 </head>
-<body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
-    <!-- Ambient Dreamy Blobs Background -->
-    <div id="blob-bg" class="blob-container">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+<body class="antialiased min-h-screen">
+    <!-- Header (메인 페이지 기준 동일 구조) -->
+    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-6 sm:px-8 py-5 my-4 relative-z">
+        <div class="flex items-center gap-4 sm:gap-6 z-10">
+            <button onclick="location.href='/board.html'" class="text-xs text-[#111111] hover:opacity-70 transition-opacity font-medium flex items-center gap-1.5 cursor-pointer">
+                <span>←</span> <span>갤러리로 돌아가기</span>
+            </button>
+        </div>
 
-    <!-- Editorial Header -->
-    <header class="app-header max-w-5xl mx-auto flex items-center justify-between px-8 py-5 my-6 relative-z">
-        <div class="text-left cursor-pointer group" onclick="location.href='/'">
-            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto" onclick="location.href='/'">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-[#111111] tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
                 ANDANTE
             </h1>
-            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium">
-                a piece of comfort
+            <p class="font-editorial-sub text-[11px] text-[#111111] mt-0.5 font-medium whitespace-nowrap">
+                마음의 안식을 담는 공간
             </p>
         </div>
 
-        <div class="flex items-center gap-6">
-            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-950 transition-colors font-medium flex items-center gap-1.5 font-serif">
-                <span>←</span> <span>갤러리로 돌아가기</span>
-            </button>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-950 transition-colors font-medium font-serif">
+        <div class="flex items-center gap-3 sm:gap-4 z-10">
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs text-[#111111] hover:opacity-70 transition-opacity font-medium whitespace-nowrap cursor-pointer">
                 마이페이지
+            </button>
+            <button id="logout-btn" class="text-xs text-[#111111] hover:text-rose-600 transition-colors font-medium whitespace-nowrap cursor-pointer">
+                로그아웃
             </button>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-4 py-4 relative-z">
-        <!-- 1. Main Article Card (Editorial Art Poem Book Style) -->
-        <article class="max-w-2xl mx-auto bg-white rounded-3xl p-6 md:p-10 border border-stone-200/90 shadow-xl shadow-stone-900/5 mb-8">
-            <!-- Header Area -->
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1 pr-4">
-                    <h1 id="post-title" class="text-2xl md:text-3xl font-serif font-medium text-stone-900 tracking-tight mb-2.5 break-keep">
-                        작품을 불러오는 중...
-                    </h1>
-                    <div class="flex items-center gap-2 text-xs text-stone-500">
-                        <span id="post-author" class="bg-stone-100 border border-stone-200 text-stone-700 px-2.5 py-0.5 rounded-full font-sans font-medium">
-                            작가
-                        </span>
-                        <span id="post-date" class="font-light"></span>
-                    </div>
-                </div>
-
-                <!-- Action Links (Edit / Delete) -->
-                <div id="action-btns" class="hidden flex items-center gap-2 text-xs text-stone-400 pt-1">
-                    <button id="edit-btn" class="hover:text-stone-700 transition-colors font-serif">수정</button>
-                    <span>·</span>
-                    <button id="delete-btn" class="hover:text-rose-500 transition-colors font-serif">삭제</button>
-                </div>
-            </div>
-
-            <div class="border-t border-stone-100 my-6"></div>
-
-            <!-- Artwork Image Frame (Aspect 4:3 Frame) -->
-            <div class="rounded-2xl overflow-hidden aspect-[4/3] bg-stone-100 border border-stone-200/80 shadow-sm mb-6 flex justify-center items-center">
+    <main class="max-w-4xl mx-auto px-4 py-4 relative-z pb-24">
+        <!-- 1. Main Article Card (메인 디자인 기준) -->
+        <article id="post-card" class="max-w-2xl mx-auto rounded-3xl p-6 sm:p-10 border border-black/10 shadow-sm mb-8 transition-colors duration-300">
+            <!-- 1) 그림 (Artwork Frame aspect-[4/3]) -->
+            <div class="rounded-2xl overflow-hidden aspect-[4/3] bg-stone-100/50 border border-black/5 shadow-sm mb-6 flex justify-center items-center">
                 <img id="post-image" src="" alt="Artwork" class="w-full h-full object-cover" style="display: none;">
             </div>
 
-            <!-- Meta Tags Chips (Pebble Chips) -->
-            <div id="post-tags" class="flex flex-wrap gap-2 mb-8">
+            <!-- 2) 제목 -->
+            <h1 id="post-title" class="text-2xl sm:text-3xl font-editorial-serif font-medium text-[#111111] tracking-tight mb-2 break-keep">
+                작품을 불러오는 중...
+            </h1>
+
+            <!-- 3) 작성자 & 날짜 & 액션 버튼 -->
+            <div class="flex items-center justify-between text-xs text-[#111111] mb-4">
+                <div class="flex items-center gap-2.5">
+                    <span id="post-author" class="bg-white/70 border border-white/80 text-[#111111] px-2.5 py-0.5 rounded-full font-sans font-medium">
+                        작가
+                    </span>
+                    <span id="post-date" class="opacity-70 font-light"></span>
+                </div>
+
+                <!-- Action Links (작성자 본인에게만 노출) -->
+                <div id="action-btns" class="hidden flex items-center gap-2 text-xs text-[#111111] opacity-75">
+                    <button id="edit-btn" class="hover:underline cursor-pointer">수정</button>
+                    <span>·</span>
+                    <button id="delete-btn" class="hover:text-rose-600 cursor-pointer">삭제</button>
+                </div>
+            </div>
+
+            <!-- 4) 태그, 날씨, 상황 칩 (반투명 흰색 칩) -->
+            <div id="post-tags" class="flex flex-wrap gap-1.5 mb-6">
                 <!-- Tags inserted dynamically -->
             </div>
 
-            <!-- Poem Body (Serif Typography + Breathing Divider) -->
-            <div id="post-content" class="font-serif font-editorial-serif text-stone-800 text-base md:text-lg leading-[2.3] space-y-6 text-center break-keep my-10 px-4">
+            <!-- 안쪽 구분선 -->
+            <div class="border-t border-white/80 my-6"></div>
+
+            <!-- 5) 본문 시 (메인 시 스타일: 줄 간격 1.9, 검은색 글씨) -->
+            <div id="post-content" class="font-editorial-serif text-[#111111] text-base sm:text-lg leading-[1.9] space-y-6 text-center break-keep my-8 px-2 sm:px-6">
                 <!-- Poem paragraphs inserted dynamically -->
             </div>
 
-            <!-- Empathy (Like) Button -->
-            <div class="flex justify-center pt-8 border-t border-stone-100">
-                <button id="like-btn" class="flex items-center gap-2 px-6 py-3 rounded-full border border-stone-200 bg-white hover:border-rose-200 hover:text-rose-500 text-stone-600 text-sm transition-all shadow-sm group cursor-pointer">
-                    <span id="like-icon" class="text-base transition-transform group-hover:scale-110">♡</span>
-                    <span class="font-serif">공감</span>
+            <!-- 안쪽 구분선 -->
+            <div class="border-t border-white/80 my-6"></div>
+
+            <!-- 6) 음악 영역 (시 아래 배치) -->
+            <div id="post-music-container" class="my-6 hidden">
+                <div class="p-3.5 sm:p-4 px-4 sm:px-5 flex items-center justify-between rounded-2xl border border-white/80 bg-white/75 backdrop-blur-sm shadow-sm gap-3 transition-all duration-300">
+                    <!-- Left: LP Vinyl Disc + Track Info -->
+                    <div class="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+                        <div class="relative w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 cursor-pointer group" id="post-vinyl-wrapper" title="재생 / 일시정지">
+                            <div id="post-vinyl-disc" class="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden shadow-sm border border-black/10 relative flex items-center justify-center bg-stone-900 transition-transform duration-300 group-hover:scale-105">
+                                <img id="post-music-cover" src="" alt="Album Art" class="w-full h-full object-cover hidden" />
+                                <span id="post-music-emoji" class="text-lg">🎵</span>
+                                <div class="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-white/95 border border-stone-300 shadow-sm flex items-center justify-center pointer-events-none">
+                                    <div class="w-1 h-1 rounded-full bg-stone-800"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1 pr-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 id="post-music-title" class="text-xs sm:text-sm font-medium text-[#111111] truncate font-editorial-serif tracking-tight" style="margin: 0;"></h4>
+                                <span id="post-music-unavailable" class="text-[10px] sm:text-[11px] text-[#111111] opacity-60 font-sans tracking-tight hidden">지금은 재생할 수 없어요</span>
+                            </div>
+                            <p id="post-music-artist" class="text-[10px] sm:text-[11px] text-[#111111] opacity-70 mt-0.5 truncate font-editorial-sub"></p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Minimalist Controls -->
+                    <div id="post-audio-slot" class="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+                        <span id="post-audio-loading" class="text-xs text-[#111111] opacity-40 font-mono">음원 연결 중...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7) 공감 (Like) 버튼 -->
+            <div class="flex justify-center pt-4">
+                <button id="like-btn" class="flex items-center gap-2 px-6 py-2.5 rounded-full border border-black/10 bg-white/70 hover:bg-white text-[#111111] text-xs sm:text-sm transition-all shadow-sm cursor-pointer">
+                    <span id="like-icon" class="text-sm">♡</span>
+                    <span class="font-medium">공감</span>
                     <span id="like-count" class="font-medium">0</span>
                 </button>
             </div>
         </article>
 
-        <!-- 2. Comments Section (Guestbook & Warm Letter Style) -->
-        <section class="max-w-2xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-stone-200/90 shadow-sm mb-20">
-            <h2 class="font-serif text-lg text-stone-900 font-medium mb-4 flex items-center justify-between">
-                <span>마음 나누기 <span class="text-sm font-normal text-stone-500">(댓글)</span></span>
-                <span id="comments-count" class="text-xs font-light text-stone-400"></span>
+        <!-- 2. 댓글 영역 (단색 및 일관된 스타일) -->
+        <section id="comments-section" class="max-w-2xl mx-auto rounded-3xl p-6 sm:p-8 border border-black/10 shadow-sm transition-colors duration-300">
+            <h2 class="text-base sm:text-lg text-[#111111] font-medium mb-4 flex items-center justify-between font-editorial-title">
+                <span>마음 나누기 <span class="text-xs sm:text-sm font-normal opacity-70">(댓글)</span></span>
+                <span id="comments-count" class="text-xs font-light opacity-60"></span>
             </h2>
 
             <!-- Comment Input -->
             <div class="flex gap-2.5 mb-6">
-                <input type="text" id="comment-input" placeholder="따뜻한 한 줄 위로를 남겨보세요" class="flex-1 bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:bg-white focus:border-stone-400 outline-none transition-all text-stone-800 font-editorial-serif placeholder:text-stone-400">
-                <button id="comment-submit-btn" class="bg-stone-900 hover:bg-stone-800 text-white rounded-2xl px-5 py-3 text-sm font-serif transition-colors whitespace-nowrap shadow-sm">
+                <input type="text" id="comment-input" placeholder="따뜻한 한 줄 위로를 남겨보세요" class="flex-1 bg-white/80 border border-black/10 rounded-2xl px-4 py-3 text-xs sm:text-sm focus:bg-white focus:border-black/30 outline-none transition-all text-[#111111] font-editorial-serif placeholder:opacity-40">
+                <button id="comment-submit-btn" class="bg-stone-900 hover:bg-stone-800 text-white rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shadow-sm cursor-pointer">
                     남기기
                 </button>
             </div>
@@ -122,12 +163,116 @@
         const boardId = params.get('id');
         if (!boardId) window.location.href = '/board.html';
 
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
+            window.location.href = '/login.html';
+        });
+
         const showToast = (msg) => {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
-            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-medium shadow-xl z-50';
+            toast.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-medium shadow-xl z-50 transition-all';
             setTimeout(() => toast.className = 'hidden', 3000);
         };
+
+        // [Requirement 5] 재생 URL 조회: 실패 시 1초 간격으로 최대 2회까지 재시도
+        async function fetchMusicTrackWithRetry(trackId, maxRetries = 2) {
+            let attempts = 0;
+            while (attempts <= maxRetries) {
+                try {
+                    const res = await fetch(`/api/music?id=${encodeURIComponent(trackId)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.track && data.track.audio) {
+                            return data.track;
+                        }
+                    }
+                } catch(e) {}
+                attempts++;
+                if (attempts <= maxRetries) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+            return null;
+        }
+
+        function formatTime(sec) {
+            if (!sec || isNaN(sec)) return '0:00';
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        function setupPostAudioControls(audioEl, durationSec) {
+            const playBtn = document.getElementById('post-custom-play-btn');
+            const vinylWrapper = document.getElementById('post-vinyl-wrapper');
+            const playIcon = document.getElementById('post-play-icon');
+            const pauseIcon = document.getElementById('post-pause-icon');
+            const vinylDisc = document.getElementById('post-vinyl-disc');
+            const progressContainer = document.getElementById('post-progress-container');
+            const progressFill = document.getElementById('post-progress-fill');
+            const curTimeEl = document.getElementById('post-audio-cur-time');
+            const totalTimeEl = document.getElementById('post-audio-total-time');
+
+            if (durationSec && totalTimeEl) {
+                totalTimeEl.textContent = formatTime(durationSec);
+            }
+
+            audioEl.addEventListener('loadedmetadata', () => {
+                if (totalTimeEl) totalTimeEl.textContent = formatTime(audioEl.duration);
+            });
+
+            audioEl.addEventListener('timeupdate', () => {
+                if (!audioEl.duration) return;
+                const pct = (audioEl.currentTime / audioEl.duration) * 100;
+                if (progressFill) progressFill.style.width = `${pct}%`;
+                if (curTimeEl) curTimeEl.textContent = formatTime(audioEl.currentTime);
+                if (totalTimeEl && (!durationSec || totalTimeEl.textContent === '--:--')) {
+                    totalTimeEl.textContent = formatTime(audioEl.duration);
+                }
+            });
+
+            audioEl.addEventListener('play', () => {
+                if (playIcon) playIcon.classList.add('hidden');
+                if (pauseIcon) pauseIcon.classList.remove('hidden');
+                if (vinylDisc) vinylDisc.classList.add('vinyl-spin');
+            });
+
+            audioEl.addEventListener('pause', () => {
+                if (playIcon) playIcon.classList.remove('hidden');
+                if (pauseIcon) pauseIcon.classList.add('hidden');
+                if (vinylDisc) vinylDisc.classList.remove('vinyl-spin');
+            });
+
+            audioEl.addEventListener('ended', () => {
+                if (playIcon) playIcon.classList.remove('hidden');
+                if (pauseIcon) pauseIcon.classList.add('hidden');
+                if (vinylDisc) vinylDisc.classList.remove('vinyl-spin');
+                if (progressFill) progressFill.style.width = '0%';
+                if (curTimeEl) curTimeEl.textContent = '0:00';
+            });
+
+            const togglePlay = () => {
+                if (audioEl.paused) {
+                    audioEl.play().catch(e => console.warn('Audio play error:', e.message));
+                } else {
+                    audioEl.pause();
+                }
+            };
+
+            if (playBtn) playBtn.onclick = togglePlay;
+            if (vinylWrapper) vinylWrapper.onclick = togglePlay;
+
+            if (progressContainer) {
+                progressContainer.onclick = (e) => {
+                    const rect = progressContainer.getBoundingClientRect();
+                    const clickPos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                    if (audioEl.duration) {
+                        audioEl.currentTime = clickPos * audioEl.duration;
+                    }
+                };
+            }
+        }
 
         const loadPost = async () => {
             try {
@@ -135,28 +280,39 @@
                 if (!res.ok) throw new Error('게시물을 불러오지 못했습니다.');
                 const post = await res.json();
                 
-                document.getElementById('post-title').textContent = post.TITLE || '무제';
-                document.getElementById('post-author').textContent = post.USERNAME || '익명';
-                document.getElementById('post-date').textContent = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\.$/, '');
-                
+                // [Requirement 2] 게시글 저장된 theme_color 또는 기본 메인 배경
+                const cardBg = post.THEME_COLOR || 'var(--bg, #FDFBD4)';
+                const postCard = document.getElementById('post-card');
+                const commentsSection = document.getElementById('comments-section');
+                if (postCard) postCard.style.backgroundColor = cardBg;
+                if (commentsSection) commentsSection.style.backgroundColor = cardBg;
+
+                // 1) 그림
                 const img = document.getElementById('post-image');
                 if (post.IMAGE_BASE64) {
                     img.src = post.IMAGE_BASE64;
                     img.style.display = 'block';
                 }
 
-                // Weather & Mood pebble tags
+                // 2) 제목
+                document.getElementById('post-title').textContent = post.TITLE || '무제';
+
+                // 3) 작성자 & 날짜
+                document.getElementById('post-author').textContent = post.USERNAME || '익명';
+                document.getElementById('post-date').textContent = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\.$/, '');
+                
+                // 4) 태그, 날씨, 상황 칩 (반투명 흰색 칩)
                 const tagsContainer = document.getElementById('post-tags');
                 const tagList = [];
                 if (post.WEATHER) tagList.push(`🌤️ ${post.WEATHER}`);
                 if (post.MOOD) tagList.push(`${post.MOOD}`);
-                if (post.MUSIC_MOOD) tagList.push(`🎵 ${post.MUSIC_MOOD}`);
+                if (post.THEME && post.THEME !== post.TITLE) tagList.push(`${post.THEME}`);
                 
                 tagsContainer.innerHTML = tagList.map(tag => 
-                    `<span class="rounded-full px-3 py-1 bg-stone-50 border border-stone-200 text-xs text-stone-600 font-serif">${tag}</span>`
+                    `<span class="rounded-full px-3 py-1 bg-white/70 border border-white/80 text-xs text-[#111111] font-sans font-medium whitespace-nowrap">${tag}</span>`
                 ).join('');
 
-                // Format Poem with breathing divider (✦)
+                // 5) 본문 시 (메인 시 스타일: 줄 간격 1.9, 검은색 글씨)
                 const poemEl = document.getElementById('post-content');
                 const rawPoem = (post.POEM_TEXT || post.CONTENT || post.THEME || '').trim();
                 
@@ -164,7 +320,7 @@
                     const stanzas = rawPoem.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
                     poemEl.innerHTML = stanzas.map((stanza, idx) => {
                         const linesHtml = stanza.split('\n').join('<br>');
-                        const dividerHtml = idx < stanzas.length - 1 ? '<div class="text-stone-300 tracking-widest text-xs my-4">✦</div>' : '';
+                        const dividerHtml = idx < stanzas.length - 1 ? '<div class="text-[#111111] opacity-35 tracking-widest text-xs my-6">✦</div>' : '';
                         return `<p>${linesHtml}</p>${dividerHtml}`;
                     }).join('');
                 } else if (rawPoem.includes('\n')) {
@@ -173,7 +329,7 @@
                         const half = Math.ceil(lines.length / 2);
                         const stanza1 = lines.slice(0, half).join('<br>');
                         const stanza2 = lines.slice(half).join('<br>');
-                        poemEl.innerHTML = `<p>${stanza1}</p><div class="text-stone-300 tracking-widest text-xs my-4">✦</div><p>${stanza2}</p>`;
+                        poemEl.innerHTML = `<p>${stanza1}</p><div class="text-[#111111] opacity-35 tracking-widest text-xs my-6">✦</div><p>${stanza2}</p>`;
                     } else {
                         poemEl.innerHTML = `<p>${lines.join('<br>')}</p>`;
                     }
@@ -181,15 +337,92 @@
                     poemEl.innerHTML = `<p>${rawPoem}</p>`;
                 }
 
+                // 6) 음악 영역 (Requirement 4 & 5)
+                const musicContainer = document.getElementById('post-music-container');
+                const musicTitle = (post.MUSIC_TITLE || '').trim();
+                const musicArtist = (post.MUSIC_ARTIST || '').trim();
+                const musicMood = (post.MUSIC_MOOD || '').trim();
+                let trackId = null;
+                if (musicMood && musicMood.startsWith('ID:')) {
+                    trackId = musicMood.split(':')[1];
+                } else if (musicMood && /^\d+$/.test(musicMood)) {
+                    trackId = musicMood;
+                }
+
+                if (!musicTitle) {
+                    // 곡 정보가 전혀 없는 글은 음악 영역을 완전히 숨김
+                    musicContainer.classList.add('hidden');
+                } else {
+                    musicContainer.classList.remove('hidden');
+                    // 곡 이름과 아티스트는 저장된 값으로 항상 먼저 표시 (조회 결과와 무관하게 즉시 표시)
+                    document.getElementById('post-music-title').textContent = musicTitle;
+                    if (musicArtist) {
+                        document.getElementById('post-music-artist').textContent = `by ${musicArtist}`;
+                    }
+
+                    // 앨범 아트 표시
+                    const coverImg = document.getElementById('post-music-cover');
+                    const emojiEl = document.getElementById('post-music-emoji');
+                    if (post.MUSIC_IMAGE) {
+                        coverImg.src = post.MUSIC_IMAGE;
+                        coverImg.classList.remove('hidden');
+                        if (emojiEl) emojiEl.classList.add('hidden');
+                    }
+
+                    const audioSlot = document.getElementById('post-audio-slot');
+                    const unavailableNotice = document.getElementById('post-music-unavailable');
+
+                    if (!trackId) {
+                        // 곡 ID가 없는 경우
+                        if (audioSlot) audioSlot.innerHTML = '';
+                        if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+                    } else {
+                        // /api/music?id= 로 재생 URL 조회 (최대 2회 재시도)
+                        const track = await fetchMusicTrackWithRetry(trackId, 2);
+                        if (track && track.audio) {
+                            // 앨범 커버 갱신
+                            if (track.image && coverImg) {
+                                coverImg.src = track.image;
+                                coverImg.classList.remove('hidden');
+                                if (emojiEl) emojiEl.classList.add('hidden');
+                            }
+
+                            // 재생 컨트롤 표시
+                            audioSlot.innerHTML = `
+                                <audio id="post-native-audio" src="${track.audio}" preload="metadata"></audio>
+                                <span id="post-audio-cur-time" class="text-[10px] sm:text-[11px] font-mono text-[#111111] opacity-50 w-7 sm:w-8 text-right select-none">0:00</span>
+                                <div id="post-progress-container" class="relative w-20 sm:w-40 h-1.5 hover:h-2 bg-stone-300/80 rounded-full cursor-pointer transition-all duration-150 overflow-hidden flex items-center group">
+                                    <div id="post-progress-fill" class="h-full bg-stone-900 rounded-full w-0 transition-all duration-75"></div>
+                                </div>
+                                <span id="post-audio-total-time" class="text-[10px] sm:text-[11px] font-mono text-[#111111] opacity-50 w-7 sm:w-8 select-none">--:--</span>
+                                <button id="post-custom-play-btn" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md transition-all active:scale-95 flex-shrink-0 cursor-pointer ml-1" title="재생">
+                                    <svg id="post-play-icon" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    <svg id="post-pause-icon" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                </button>
+                            `;
+                            const audioEl = document.getElementById('post-native-audio');
+                            setupPostAudioControls(audioEl, track.duration || post.MUSIC_DURATION);
+                        } else {
+                            // 재생 URL 조회 실패: 재생 버튼 숨기고 안내 표시
+                            if (audioSlot) audioSlot.innerHTML = '';
+                            if (unavailableNotice) unavailableNotice.classList.remove('hidden');
+                        }
+                    }
+                }
+
+                // 수정·삭제 버튼: 작성자 본인에게만 표시
                 if (post.USERNAME === currentUser || currentUser === 'admin') {
                     document.getElementById('action-btns').classList.remove('hidden');
                 }
 
+                // 좋아요 수
                 const likeBtn = document.getElementById('like-btn');
                 document.getElementById('like-count').textContent = post.LIKE_COUNT || 0;
                 if (post.IS_LIKED > 0) {
-                    likeBtn.classList.add('border-rose-200', 'text-rose-500', 'bg-rose-50/50');
-                    document.getElementById('like-icon').textContent = '♥';
+                    likeBtn.classList.add('bg-white', 'border-rose-300');
+                    const icon = document.getElementById('like-icon');
+                    icon.textContent = '♥';
+                    icon.classList.add('text-rose-600');
                 }
             } catch (e) {
                 showToast(e.message);
@@ -206,7 +439,7 @@
                 
                 if (!comments || comments.length === 0) {
                     if (countEl) countEl.textContent = '0개';
-                    list.innerHTML = '<p class="text-center text-stone-400 font-serif text-sm py-8">아직 남겨진 온기가 없습니다. 첫 번째 위로를 건네보세요.</p>';
+                    list.innerHTML = '<p class="text-center text-[#111111] opacity-40 font-editorial-serif text-sm py-8">아직 남겨진 온기가 없습니다. 첫 번째 위로를 건네보세요.</p>';
                     return;
                 }
 
@@ -214,20 +447,20 @@
 
                 comments.forEach(c => {
                     const div = document.createElement('div');
-                    div.className = 'p-4 rounded-2xl bg-stone-50/70 border border-stone-200/80 flex flex-col gap-1.5 transition-colors hover:bg-stone-50';
+                    div.className = 'p-4 rounded-2xl bg-white/70 border border-white/80 flex flex-col gap-1.5 transition-colors';
                     const isMine = c.USERNAME === currentUser || currentUser === 'admin';
-                    const delBtnHtml = isMine ? `<button onclick="deleteComment(${c.ID})" class="text-stone-400 hover:text-rose-500 text-xs transition-colors font-serif ml-2">삭제</button>` : '';
+                    const delBtnHtml = isMine ? `<button onclick="deleteComment(${c.ID})" class="text-[#111111] opacity-50 hover:opacity-100 hover:text-rose-600 text-xs transition-colors ml-2 cursor-pointer">삭제</button>` : '';
                     const dateStr = new Date(c.CREATED_AT).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
                     div.innerHTML = `
                         <div class="flex justify-between items-center text-xs">
-                            <span class="font-serif font-medium text-stone-800">${c.USERNAME}</span>
-                            <div class="flex items-center text-stone-400 font-light">
+                            <span class="font-medium text-[#111111]">${c.USERNAME}</span>
+                            <div class="flex items-center text-[#111111] opacity-50 font-light">
                                 <span>${dateStr}</span>
                                 ${delBtnHtml}
                             </div>
                         </div>
-                        <div class="text-stone-700 text-sm leading-relaxed whitespace-pre-wrap font-serif pt-0.5">${c.COMMENT_TEXT}</div>
+                        <div class="text-[#111111] text-sm leading-relaxed whitespace-pre-wrap font-editorial-serif pt-0.5">${c.COMMENT_TEXT}</div>
                     `;
                     list.appendChild(div);
                 });
@@ -248,11 +481,13 @@
                 const btn = document.getElementById('like-btn');
                 const icon = document.getElementById('like-icon');
                 if (data.isLiked) {
-                    btn.classList.add('border-rose-200', 'text-rose-500', 'bg-rose-50/50');
+                    btn.classList.add('bg-white', 'border-rose-300');
                     icon.textContent = '♥';
+                    icon.classList.add('text-rose-600');
                 } else {
-                    btn.classList.remove('border-rose-200', 'text-rose-500', 'bg-rose-50/50');
+                    btn.classList.remove('bg-white', 'border-rose-300');
                     icon.textContent = '♡';
+                    icon.classList.remove('text-rose-600');
                 }
             } catch (e) { showToast('좋아요 처리 실패'); }
         });
@@ -302,7 +537,7 @@
         document.getElementById('edit-btn').addEventListener('click', async () => {
             const newTitle = await NeoModal.prompt('수정할 제목을 입력하세요:', document.getElementById('post-title').textContent);
             if(newTitle === null) return;
-            const newContent = await NeoModal.prompt('수정할 내용을 입력하세요:', document.getElementById('post-content').textContent);
+            const newContent = await NeoModal.prompt('수정할 내용을 입력하세요:', document.getElementById('post-content').textContent.trim());
             if(newContent === null) return;
             
             try {

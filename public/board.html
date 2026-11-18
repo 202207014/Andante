@@ -3,63 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>공유 게시판 - 안단테 (Andante)</title>
-    <link rel="stylesheet" href="style.css?v=9">
+    <title>공유 갤러리 - 안단테 (Andante)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="modal.js"></script>
+    <script src="modal.js?v=2"></script>
+    <style>
+        body {
+            background-color: var(--bg, #FDFBD4);
+            color: var(--ink, #111111);
+            min-height: 100vh;
+        }
+    </style>
 </head>
-<body class="bg-[#FAF8F5] text-stone-800 antialiased min-h-screen">
-    <!-- Ambient Blobs -->
-    <div id="blob-bg" class="blob-container">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
-
-    <!-- Editorial Header (Perfect Absolute Center Alignment) -->
-    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-8 py-5 my-6 relative-z">
+<body class="antialiased min-h-screen">
+    <!-- Global Navigation Header (메인 페이지와 동일한 구조) -->
+    <header class="app-header max-w-6xl mx-auto relative flex items-center justify-between px-6 sm:px-8 py-5 my-4 relative-z">
         <!-- Left Nav Links -->
         <div class="flex items-center gap-4 sm:gap-6 z-10">
-            <button onclick="location.href='/'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
+            <button onclick="location.href='/'" class="text-xs text-[#111111] hover:opacity-70 transition-opacity font-medium whitespace-nowrap cursor-pointer">
                 홈으로
+            </button>
+            <button onclick="location.href='/?view=diary'" class="text-xs text-[#111111] hover:opacity-70 transition-opacity font-medium whitespace-nowrap cursor-pointer">
+                내 일기장
             </button>
         </div>
 
-        <!-- Center Brand Logo (Absolute Center for Perfect Geometric Alignment) -->
+        <!-- Center Brand Logo -->
         <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto" onclick="location.href='/'">
-            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-[#111111] tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
                 ANDANTE
             </h1>
-            <p class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium whitespace-nowrap">
-                a piece of comfort
+            <p class="font-editorial-sub text-[11px] text-[#111111] mt-0.5 font-medium whitespace-nowrap">
+                마음의 안식을 담는 공간
             </p>
         </div>
 
         <!-- Right Nav Links & User Status -->
         <div class="flex items-center gap-3 sm:gap-4 z-10">
-            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider hidden sm:inline-block whitespace-nowrap"></span>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
+            <span id="user-info" class="text-xs text-[#111111] font-medium hidden sm:inline-block whitespace-nowrap"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs text-[#111111] hover:opacity-70 transition-opacity font-medium whitespace-nowrap cursor-pointer">
                 마이페이지
             </button>
-            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold whitespace-nowrap">
+            <button id="logout-btn" class="text-xs text-[#111111] hover:text-rose-600 transition-colors font-medium whitespace-nowrap cursor-pointer">
                 로그아웃
             </button>
         </div>
     </header>
 
-    <div class="max-w-6xl mx-auto px-6 py-6 relative-z">
-        <div class="text-center mb-12 space-y-1">
-            <span class="tracking-[0.25em] text-xs font-serif text-stone-500 uppercase">SHARED MOMENTS</span>
-            <h1 class="font-serif text-2xl md:text-3xl font-light text-stone-900 mt-1 mb-2 tracking-tight">
+    <div class="max-w-6xl mx-auto px-6 py-4 relative-z pb-16">
+        <!-- Title section (영문 대문자 제거) -->
+        <div class="text-center mb-10 space-y-1.5">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-[#111111] tracking-tight">
                 공유 갤러리
             </h1>
-            <p class="text-stone-600 text-sm font-light">마음의 안식을 찾은 순간들을 함께 감상해보세요.</p>
+            <p class="text-[#111111] text-sm opacity-75 font-light">마음의 안식을 찾은 순간들을 함께 감상해보세요.</p>
         </div>
         
-        <div id="board-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7">
-            <!-- Boards go here -->
+        <!-- Board Container (데스크톱 4열 그리드, 같은 행 높이 일치) -->
+        <div id="board-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
+            <!-- Cards go here -->
         </div>
         
+        <!-- Pagination -->
         <div id="pagination-controls" class="flex justify-center gap-2 mt-12 flex-wrap"></div>
     </div>
     
@@ -70,8 +76,11 @@
         if (!token) window.location.href = '/login.html';
         
         const userInfoEl = document.getElementById('user-info');
-        userInfoEl.textContent = `${sessionStorage.getItem('authName') || sessionStorage.getItem('authUsername')}님`;
-        userInfoEl.classList.remove('hidden');
+        const authName = sessionStorage.getItem('authName') || sessionStorage.getItem('authUsername');
+        if (authName) {
+            userInfoEl.textContent = `${authName}님`;
+            userInfoEl.classList.remove('hidden');
+        }
 
         document.getElementById('logout-btn').addEventListener('click', () => {
             ['authToken', 'authUsername', 'authName', 'authGender', 'authAge', 'authMbti'].forEach(k => sessionStorage.removeItem(k));
@@ -81,14 +90,14 @@
         const showToast = (msg) => {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
-            toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-medium shadow-xl z-50';
+            toast.className = 'fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-medium shadow-xl z-50 transition-all';
             setTimeout(() => toast.className = 'hidden', 3000);
         };
 
         const loadBoards = async (page = 1) => {
             const container = document.getElementById('board-container');
             const pageControls = document.getElementById('pagination-controls');
-            container.innerHTML = '<div class="col-span-full py-16 text-center"><div class="spinner mx-auto mb-4 border-stone-300 border-t-stone-800"></div><p class="font-serif text-xs tracking-wider text-stone-500">작품을 불러오는 중...</p></div>';
+            container.innerHTML = '<div class="col-span-full py-16 text-center"><div class="spinner mx-auto mb-4 border-stone-300 border-t-stone-800"></div><p class="font-editorial-serif text-xs text-[#111111] opacity-60">작품을 불러오는 중...</p></div>';
             pageControls.innerHTML = '';
 
             try {
@@ -96,55 +105,75 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
+                if (!res.ok) throw new Error(data.error || '목록 조회 실패');
 
                 container.innerHTML = '';
-                if (data.items.length === 0) {
-                    container.innerHTML = '<div class="col-span-full bg-white rounded-3xl p-12 text-center border border-stone-300 shadow-sm"><p class="font-serif text-stone-500 text-sm">아직 공유된 작품이 없습니다.</p></div>';
+                if (!data.items || data.items.length === 0) {
+                    container.innerHTML = '<div class="col-span-full rounded-2xl p-12 text-center border border-black/10 bg-white/70 shadow-sm"><p class="font-editorial-serif text-[#111111] text-sm opacity-60">아직 공유된 작품이 없습니다.</p></div>';
                     return;
                 }
 
                 data.items.forEach(post => {
                     const card = document.createElement('div');
-                    card.className = 'group bg-white rounded-3xl p-4 border border-stone-300 shadow-sm hover:border-stone-400 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between cursor-pointer';
+                    // [Requirement 2] 게시글 저장된 theme_color 또는 기본 메인 배경 사용
+                    const cardBg = post.THEME_COLOR || 'var(--bg, #FDFBD4)';
+                    card.className = 'group rounded-2xl p-4 border border-black/10 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between cursor-pointer h-full';
+                    card.style.backgroundColor = cardBg;
                     card.onclick = () => { window.location.href = `/post.html?id=${post.ID}`; };
 
                     const date = new Date(post.CREATED_AT).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+                    const isLiked = (post.IS_LIKED > 0);
+
+                    // Tag chips (Weather & Mood)
+                    const tagChips = [];
+                    if (post.WEATHER) tagChips.push(`🌤️ ${post.WEATHER}`);
+                    if (post.MOOD) tagChips.push(`${post.MOOD}`);
+                    const tagChipsHtml = tagChips.map(t => 
+                        `<span class="bg-white/70 border border-white/80 text-[#111111] px-2.5 py-0.5 rounded-full text-[11px] font-sans font-medium whitespace-nowrap">${t}</span>`
+                    ).join('');
+
                     card.innerHTML = `
-                        <!-- 이미지 액자 -->
-                        <div class="overflow-hidden rounded-2xl aspect-[4/3] bg-stone-100 relative mb-4 border border-stone-200 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)]">
-                            <img src="${post.IMAGE_BASE64}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="${post.TITLE || 'AI Artwork'}" />
+                        <!-- 그림 썸네일 (4:3) -->
+                        <div class="overflow-hidden rounded-xl aspect-[4/3] bg-stone-100/50 relative mb-3.5 border border-black/5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)] flex-shrink-0">
+                            <img src="${post.IMAGE_BASE64}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="${post.TITLE || '작품'}" />
                         </div>
                         
-                        <!-- 본문 메타 -->
-                        <div class="px-1 flex-1 flex flex-col justify-between">
+                        <!-- 카드 본문 메타 -->
+                        <div class="flex-1 flex flex-col justify-between">
                             <div>
-                                <h3 class="text-stone-900 font-serif font-medium text-base line-clamp-1 mb-2.5 tracking-tight">
+                                <h3 class="text-[#111111] font-editorial-serif font-medium text-base line-clamp-1 mb-2 tracking-tight">
                                     ${post.TITLE || '무제'}
                                 </h3>
-                                <div class="flex items-center justify-between text-xs mb-3">
-                                    <span class="bg-stone-100 border border-stone-300 text-stone-700 px-2.5 py-0.5 rounded-full font-sans">
-                                        ${post.USERNAME}
+                                
+                                <div class="flex items-center justify-between text-xs mb-2.5">
+                                    <span class="bg-white/70 border border-white/80 text-[#111111] px-2.5 py-0.5 rounded-full font-sans font-medium">
+                                        ${post.USERNAME || '익명'}
                                     </span>
-                                    <span class="text-stone-500 font-light">
+                                    <span class="text-[#111111] text-xs font-light opacity-70">
                                         ${date}
                                     </span>
                                 </div>
+
+                                ${tagChipsHtml ? `<div class="flex flex-wrap gap-1.5 mb-2">${tagChipsHtml}</div>` : ''}
                             </div>
                             
-                            <!-- 하단 액션 바 -->
-                            <div class="border-t border-stone-200 pt-3 flex items-center justify-between text-xs text-stone-600">
-                                <button class="like-btn flex items-center gap-1 hover:text-rose-500 transition-colors">
-                                    <span class="text-sm">♡</span> <span>${post.LIKE_COUNT || 0}</span>
-                                </button>
-                                <span class="font-serif tracking-wider text-stone-800 hover:text-stone-950 flex items-center gap-1 transition-colors">
-                                    감상하기 <span class="text-stone-400 group-hover:translate-x-0.5 transition-transform">→</span>
-                                </span>
+                            <!-- 카드 하단 구분선 & 액션 바 (음악 정보/버튼 제외) -->
+                            <div>
+                                <div class="border-t border-white/80 my-3"></div>
+                                <div class="flex items-center justify-between text-xs text-[#111111]">
+                                    <button class="like-btn flex items-center gap-1.5 hover:text-rose-600 transition-colors cursor-pointer" title="공감">
+                                        <span class="text-sm like-icon ${isLiked ? 'text-rose-600' : ''}">${isLiked ? '♥' : '♡'}</span>
+                                        <span class="like-count font-medium">${post.LIKE_COUNT || 0}</span>
+                                    </button>
+                                    <span class="text-[#111111] font-medium flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                        감상하기 <span>→</span>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     `;
 
-                    // Like button toggle support with stopPropagation
+                    // Like toggle handler with stopPropagation
                     const likeBtn = card.querySelector('.like-btn');
                     if (likeBtn) {
                         likeBtn.onclick = async (e) => {
@@ -156,11 +185,19 @@
                                     body: JSON.stringify({ board_id: post.ID })
                                 });
                                 const lData = await lRes.json();
-                                if (lData.liked !== undefined) {
-                                    post.LIKE_COUNT = (post.LIKE_COUNT || 0) + (lData.liked ? 1 : -1);
-                                    likeBtn.innerHTML = `<span class="text-sm ${lData.liked ? 'text-rose-500' : ''}">${lData.liked ? '♥' : '♡'}</span> <span>${post.LIKE_COUNT}</span>`;
+                                if (lData.isLiked !== undefined) {
+                                    const iconEl = likeBtn.querySelector('.like-icon');
+                                    const countEl = likeBtn.querySelector('.like-count');
+                                    if (countEl) countEl.textContent = lData.count;
+                                    if (iconEl) {
+                                        iconEl.textContent = lData.isLiked ? '♥' : '♡';
+                                        if (lData.isLiked) iconEl.classList.add('text-rose-600');
+                                        else iconEl.classList.remove('text-rose-600');
+                                    }
                                 }
-                            } catch(err) {}
+                            } catch(err) {
+                                showToast('좋아요 처리 중 오류가 발생했습니다.');
+                            }
                         };
                     }
 
@@ -170,14 +207,14 @@
                 if (data.totalPages > 1) {
                     for (let i = 1; i <= data.totalPages; i++) {
                         const btn = document.createElement('button');
-                        btn.className = `px-4 py-2 rounded-full text-xs font-serif transition-all ${i === data.currentPage ? 'bg-stone-900 text-white font-medium shadow-sm' : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 shadow-sm'}`;
+                        btn.className = `px-4 py-2 rounded-full text-xs font-serif transition-all cursor-pointer ${i === data.currentPage ? 'bg-stone-900 text-white font-medium shadow-sm' : 'bg-white/80 border border-black/10 text-[#111111] hover:bg-white shadow-sm'}`;
                         btn.textContent = i;
                         btn.onclick = () => loadBoards(i);
                         pageControls.appendChild(btn);
                     }
                 }
             } catch (e) {
-                container.innerHTML = `<div class="col-span-full bg-rose-50 border border-rose-200 rounded-3xl p-8 text-center font-serif text-rose-700 text-sm">${e.message}</div>`;
+                container.innerHTML = `<div class="col-span-full bg-white/70 border border-black/10 rounded-2xl p-8 text-center font-editorial-serif text-[#111111] text-sm">${e.message}</div>`;
             }
         };
 

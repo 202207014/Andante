@@ -60,11 +60,13 @@
     --card: #FFFFFF;
     --border: #E2DED9;     /* Clearly Defined Stone 300 */
     
-    /* Editorial Text Hierarchy (WCAG High Contrast Compliant) */
-    --text-primary: #1c1917;   /* Stone 900 */
-    --text-secondary: #44403c; /* Stone 700 */
-    --text-muted: #57534e;     /* Stone 600 */
-    --text-subtle: #78716c;    /* Stone 500 */
+    /* Editorial Text Hierarchy (Unified --ink: #111111) */
+    --ink: #111111;
+    --foreground: var(--ink);
+    --text-primary: var(--ink);
+    --text-secondary: var(--ink);
+    --text-muted: var(--ink);
+    --text-subtle: var(--ink);
     
     /* Soft Frosted Glass Panels */
     --glass-bg: rgba(255, 255, 255, 0.88);
@@ -98,12 +100,15 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-    background-color: var(--background);
-    color: var(--foreground);
+html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.8;
+    word-break: keep-all;
     min-height: 100vh;
     overflow-x: hidden;
-    line-height: 1.6;
+    transition: background-color 1.2s cubic-bezier(.22, 1, .36, 1);
 }
 
 .theme-transition {
@@ -162,6 +167,11 @@ body {
     border-radius: var(--radius-full);
     box-shadow: 0 8px 24px -4px rgba(28, 25, 23, 0.06);
     transition: all 0.3s ease;
+    min-height: 92px;
+}
+
+#main-content, #step-1-input, #diary-section {
+    scroll-margin-top: 110px;
 }
 
 /* 5. Editorial Card & Component Styles (Defined Borders & Deep Soft Shadows) */
@@ -213,7 +223,7 @@ body {
 }
 
 .brutal-btn:hover, .btn-editorial:hover {
-    border-color: #78716c;
+    border-color: var(--ink);
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(28, 25, 23, 0.08);
 }
@@ -235,42 +245,153 @@ body {
 
 .brutal-input:focus, .brutal-textarea:focus {
     background-color: #ffffff;
-    border-color: #44403c;
+    border-color: var(--ink);
     box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.1);
 }
 
-/* 둥근 원형 썸(Thumb) & 끝점 마감 보정 슬라이더 */
+/* ==========================================================================
+   감성 배터리 캡슐 슬라이더 (Battery Capsule Warmth Slider)
+   ========================================================================== */
 .energy-slider-wrapper {
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
+    height: 44px;
 }
 
-.energy-range-input {
+/* 가로로 긴 둥근 배터리 캡슐 트랙 */
+.battery-capsule-track {
+    position: relative;
+    width: 100%;
+    height: 44px;
+    border-radius: 9999px;
+    background: #F7F6F2;
+    border: 1.5px solid #E5E5E0;
+    overflow: hidden;
+    box-sizing: border-box;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+/* Dark mode removed for battery-capsule-track */
+
+/* 캡슐 안쪽 채움 영역 */
+.battery-capsule-fill {
+    position: relative;
+    height: 100%;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: hsl(var(--h, 345) 80% 64%);
+    transition: width 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+}
+
+/* 부드러운 물결(wave) 레이어 & 애니메이션 (주기 약 6s) */
+.battery-waves {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.battery-wave-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1200px;
+    height: 100%;
+    pointer-events: none;
+    display: block;
+}
+
+.battery-wave-back path {
+    fill: hsl(var(--h, 345) 75% 76% / 0.65);
+    transition: fill 0.3s ease;
+}
+
+.battery-wave-back {
+    animation: waveSwayBack 6s ease-in-out infinite alternate;
+}
+
+.battery-wave-front path {
+    fill: hsl(var(--h, 345) 82% 64% / 0.96);
+    transition: fill 0.3s ease;
+}
+
+.battery-wave-front {
+    animation: waveSwayFront 6s ease-in-out infinite alternate;
+}
+
+@keyframes waveSwayBack {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+    50% {
+        transform: translate3d(-150px, -2px, 0);
+    }
+    100% {
+        transform: translate3d(-300px, 1px, 0);
+    }
+}
+
+@keyframes waveSwayFront {
+    0% {
+        transform: translate3d(-300px, 1px, 0);
+    }
+    50% {
+        transform: translate3d(-150px, -2px, 0);
+    }
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+/* 옅은 흰색 하이라이트 층 */
+.battery-highlight-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.16) 40%,
+        rgba(255, 255, 255, 0) 75%
+    );
+    pointer-events: none;
+    box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.6);
+}
+
+/* 투명 Range 슬라이더 오버레이 */
+.energy-range-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 44px;
     margin: 0;
-    padding: 0;
+    padding: 0 4px;
     background: transparent !important;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
     z-index: 20;
     outline: none;
+    box-sizing: border-box;
 }
 
 .energy-range-input::-webkit-slider-runnable-track {
     background: transparent;
-    height: 10px;
+    height: 44px;
 }
 
 .energy-range-input::-moz-range-track {
     background: transparent;
-    height: 10px;
+    height: 44px;
 }
 
+/* 원형 흰색 점 손잡이(Thumb) & 은은한 그림자 (0 2px 8px rgba(0,0,0,.12)) */
 .energy-range-input::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -278,11 +399,11 @@ body {
     height: 24px;
     border-radius: 50%;
     background: #ffffff;
-    border: 3px solid #292524;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-    margin-top: -7px;
+    margin-top: 10px; /* (44px 트랙 - 24px 썸) / 2 = 10px 수직 중앙 정렬 */
 }
 
 .energy-range-input::-moz-range-thumb {
@@ -290,20 +411,53 @@ body {
     height: 24px;
     border-radius: 50%;
     background: #ffffff;
-    border: 3px solid #292524;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: none;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .energy-range-input::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
 }
 
 .energy-range-input::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+}
+
+.energy-range-input:active::-webkit-slider-thumb {
+    cursor: grabbing;
     transform: scale(1.15);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.energy-range-input:active::-moz-range-thumb {
+    cursor: grabbing;
+    transform: scale(1.15);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* 키보드 포커스 접근성 */
+.energy-range-input:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(41, 37, 36, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.energy-range-input:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(41, 37, 36, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.energy-slider-wrapper:has(.energy-range-input:focus-visible) .battery-capsule-track {
+    border-color: var(--ink);
+}
+
+/* prefers-reduced-motion 애니메이션 비활성화 */
+@media (prefers-reduced-motion: reduce) {
+    .battery-wave-back,
+    .battery-wave-front {
+        animation: none !important;
+    }
 }
 
 /* 감성 비밀 일기장 편지지 스타일 (Lined Letter Paper) */
@@ -323,7 +477,7 @@ body {
     background-attachment: local;
     line-height: 34px !important;
     font-size: 1rem;
-    color: #292524;
+    color: var(--ink);
     font-family: 'MaruBuri', 'Noto Serif KR', serif;
     font-weight: 400;
     letter-spacing: -0.01em;
@@ -335,12 +489,12 @@ body {
 
 .diary-letter-paper:focus {
     background-color: #FFFFFF;
-    border-color: #78716c;
+    border-color: var(--ink);
     box-shadow: 0 0 0 3px rgba(120, 113, 108, 0.1), 0 8px 24px -4px rgba(28, 25, 23, 0.06);
 }
 
 .diary-letter-paper::placeholder {
-    color: #a8a29e;
+    color: var(--ink);
     font-family: 'MaruBuri', 'Noto Serif KR', serif;
     font-style: normal;
     font-size: 0.92rem;
@@ -479,14 +633,14 @@ body {
 }
 
 .page-date {
-    color: #78716c;
+    color: var(--ink);
     font-size: 13px;
     letter-spacing: 0.05em;
     font-weight: 500;
 }
 
 .page-badge {
-    color: #78716c;
+    color: var(--ink);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -494,6 +648,18 @@ body {
     border-radius: 99px;
     background: rgba(0,0,0,0.03);
     border: 1px solid rgba(0,0,0,0.06);
+}
+
+.diary-mood-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 3px 12px;
+    border-radius: 99px;
+    transition: background-color 0.8s ease, color 0.4s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .canvas-image-container {
@@ -575,32 +741,120 @@ body {
     line-height: 1;
 }
 
+.poem-card-wrapper {
+    max-width: 920px !important;
+    width: 100% !important;
+    padding: 44px 52px !important;
+    box-sizing: border-box !important;
+}
+
+.poem-badge {
+    display: inline-block;
+    padding: 5px 18px !important;
+    font-size: 13px !important;
+    font-weight: 500;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid #E2DED9;
+    color: #44403c;
+    letter-spacing: normal;
+}
+
 .poem-title {
     font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive;
-    font-size: 26px;
-    font-weight: 700;
-    color: #292524;
-    margin-bottom: 24px;
+    font-size: 26px !important;
+    font-weight: 600 !important;
+    color: var(--ink);
+    margin: 0 !important;
     word-break: keep-all;
     letter-spacing: 0.02em;
+    line-height: 1.4;
+}
+
+.poem-grid-spread {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    width: 100%;
+}
+
+.poem-col {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    padding: 8px 12px;
+}
+
+.poem-divider-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    align-self: stretch;
+    padding: 6px 0;
+    flex-shrink: 0;
+}
+
+.poem-divider-line {
+    width: 1px;
+    flex: 1;
+    background-color: #d6d3d1;
+    min-height: 36px;
+}
+
+.poem-divider-symbol {
+    font-size: 13px;
+    color: #78716c;
+    line-height: 1;
 }
 
 .poem-content {
     font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive;
-    font-size: 19px;
-    line-height: 2.2;
-    color: #44403c;
-    font-weight: 400;
+    font-size: 19px !important;
+    line-height: 2.0 !important;
+    color: var(--ink);
+    font-weight: 500;
     white-space: pre-line;
-    max-width: 380px;
+    max-width: 100%;
     margin: 0 auto;
     word-break: keep-all;
     letter-spacing: 0.01em;
 }
 
+@media (max-width: 768px) {
+    .poem-card-wrapper {
+        padding: 30px 22px !important;
+    }
+    .poem-grid-spread {
+        flex-direction: column;
+        gap: 16px;
+    }
+    .poem-divider-center {
+        flex-direction: row;
+        width: 100%;
+        gap: 12px;
+        padding: 4px 0;
+    }
+    .poem-divider-line {
+        height: 1px;
+        width: 36px;
+        flex: none;
+        min-height: 0;
+    }
+    .poem-title {
+        font-size: 22px !important;
+    }
+    .poem-content {
+        font-size: 17px !important;
+        line-height: 1.85 !important;
+    }
+}
+
 .page-footer {
     font-size: 11px;
-    color: #a8a29e;
+    color: var(--ink);
     letter-spacing: 0.15em;
     display: flex;
     align-items: center;
@@ -613,7 +867,7 @@ body {
     background: rgba(255,255,255,0.7);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(231, 229, 228, 0.8);
-    color: #57534e;
+    color: var(--ink);
     border-radius: 50%;
     width: 44px;
     height: 44px;
@@ -654,7 +908,7 @@ body {
     width: 36px;
     height: 36px;
     border: 3px solid rgba(0, 0, 0, 0.08);
-    border-top-color: #292524;
+    border-top-color: var(--ink);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -712,3 +966,955 @@ body {
 
 /* Utilities */
 .hidden { display: none !important; }
+
+/* ==========================================================================
+   Andante Preview Hero & Interactive Emotion Grid Additions
+   ========================================================================== */
+
+/* Hero Section Grid */
+.hero-section {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 48px;
+    align-items: center;
+}
+
+.hero-title {
+    font-family: var(--serif, 'Noto Serif KR', serif);
+    font-weight: 600;
+    font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+    line-height: 1.28;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+}
+
+.hero-lead {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    margin-top: 20px;
+    max-width: 28em;
+    font-family: 'MaruBuri', 'Noto Serif KR', serif;
+}
+
+.hero-cta {
+    margin-top: 28px;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: #1c1917;
+    color: #FAF8F5;
+    padding: 14px 30px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 0 10px 25px -5px rgba(28, 25, 23, 0.2);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hero-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -5px rgba(28, 25, 23, 0.28);
+}
+
+/* Arch Art Frame & Ambient Glow */
+.glowbox {
+    position: relative;
+}
+
+.glowbox::before {
+    content: "";
+    position: absolute;
+    inset: -9% -11%;
+    border-radius: 50%;
+    background: hsl(var(--h, 25) 82% 66%);
+    opacity: 0.75;
+    filter: blur(48px);
+    z-index: 0;
+    transition: background-color 0.8s cubic-bezier(.22,1,.36,1);
+    pointer-events: none;
+}
+
+.glowbox.pulse::before {
+    animation: pulse 1.6s cubic-bezier(.22,1,.36,1);
+}
+
+@keyframes pulse {
+    40% { transform: scale(1.03); }
+}
+
+.arch {
+    position: relative;
+    z-index: 1;
+    aspect-ratio: 4/5;
+    border-radius: 999px 999px 28px 28px;
+    overflow: hidden;
+    border: 1px solid #E2DED9;
+    box-shadow: 0 30px 60px -30px rgba(28,25,23,.35);
+    background: #FAF8F5;
+}
+
+.arch svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#heroArt svg * {
+    transition: fill .8s cubic-bezier(.22,1,.36,1),
+                stop-color .8s cubic-bezier(.22,1,.36,1),
+                opacity .8s cubic-bezier(.22,1,.36,1),
+                transform .8s cubic-bezier(.22,1,.36,1);
+}
+
+#heroArt .s0 { stop-color: var(--k0, #f8d7c9); }
+#heroArt .s1 { stop-color: var(--k1, #f5c0aa); }
+#heroArt .sun, #heroArt .rf { fill: var(--k2, #f39c7a); }
+#heroArt .m1 { fill: var(--k3, #d4957e); transform: translateY(calc(var(--sy,0)*-.1px)); }
+#heroArt .m2 { fill: var(--k4, #b27a67); transform: translateY(calc(var(--sy,0)*-.2px)); }
+#heroArt .lk { fill: var(--k5, #f5bfa5); }
+#heroArt .fg { fill: var(--k6, #8e5b4b); }
+#heroArt .sunG { transform: translateY(calc(var(--sy,0)*1px)); }
+
+#heroArt .sunG, #heroArt .cld, #heroArt .rain, #heroArt .snow { opacity: 0; }
+#heroArt[data-w="맑음"] .sunG,
+#heroArt:not([data-w="맑음"]) .cld,
+#heroArt[data-w="비"] .rain,
+#heroArt[data-w="눈"] .snow { opacity: 1; }
+
+/* (Legacy .cats and .chips replaced by namespaced .main-emotion-grid and .main-situation-grid) */
+/* 감성 호흡 힐링 오브제 (Breathing Orb) */
+.orb {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    background: radial-gradient(circle at 35% 30%, #fff, hsl(var(--h, 25) 80% 82%) 60%, hsl(var(--h, 25) 70% 74%));
+    box-shadow: 0 0 35px hsl(var(--h, 25) 80% 80% / 0.5);
+    animation: br 5.6s ease-in-out infinite;
+}
+
+@keyframes br {
+    0%, 100% { transform: scale(.84); opacity: 0.9; }
+    50% { transform: scale(1.14); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        padding-bottom: 40px;
+        gap: 32px;
+    }
+}
+
+/* ==========================================================================
+   Andante Main Prototype Design Tokens & Integration
+   ========================================================================== */
+:root {
+    --bg: #FDFBD4;
+    --card: #FFFFFF;
+    --ink: #111111;
+    --sel: #4B6E48;
+    --page-max: 640px;
+    --line: #E5E5E0;
+    --track: #E9E6D0;
+    --main-track: color-mix(in srgb, var(--bg) 70%, #FFFFFF);
+    --serif: 'Noto Serif KR', serif;
+    --sans: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+    --hdr: 72px;
+    --ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* 메인 뷰포트 & 1열 중앙 정렬 레이아웃 (투명 배경 강제) */
+#main-content {
+    max-width: var(--page-max, 640px);
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    box-sizing: border-box;
+    background: transparent;
+}
+
+#step-1-input {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    box-sizing: border-box;
+    background: transparent;
+}
+
+.block {
+    width: 100%;
+    box-sizing: border-box;
+    background: transparent;
+    scroll-margin-top: calc(var(--hdr, 72px) + 16px);
+}
+
+/* 텍스트 위계: 모두 --ink (#111111) 사용, 굵기와 크기로만 구분 */
+.kicker {
+    font-size: .9rem;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+
+h1#h1 {
+    font-family: var(--serif, 'Noto Serif KR', serif);
+    font-weight: 600;
+    font-size: clamp(1.9rem, 6vw, 2.6rem);
+    line-height: 1.35;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    transition: opacity .4s var(--ease), transform .4s var(--ease);
+}
+
+h1#h1.swap {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.lead {
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: 400;
+    margin-top: 10px;
+}
+
+/* 아치 그림과 글로우 */
+.stage {
+    position: relative;
+    padding: 12px 0 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.main-glow, .glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(92%, 400px);
+    aspect-ratio: 4/5;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: hsl(var(--gh, 115) var(--gs, 30%) var(--gl, 70%));
+    opacity: 0.38;
+    filter: blur(44px);
+    z-index: 0;
+    transition: background-color .8s var(--ease);
+}
+
+.main-glow.pulse, .glow.pulse {
+    animation: pulse 1.6s var(--ease);
+}
+
+@keyframes pulse {
+    40% { transform: translate(-50%, -50%) scale(1.02); }
+}
+
+.main-arch, .arch {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 340px);
+    aspect-ratio: 4/5;
+    margin: 0 auto;
+    border-radius: 999px 999px 24px 24px;
+    border: 1px solid var(--line, #E5E5E0);
+    box-shadow: 0 24px 48px -28px rgba(26, 26, 26, .35);
+    background: var(--card, #FFFFFF);
+    overflow: hidden;
+}
+
+.main-arch svg, .arch svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.main-arch svg *, .arch svg * {
+    transition: fill .8s cubic-bezier(.22, 1, .36, 1), opacity .8s cubic-bezier(.22, 1, .36, 1);
+}
+
+.sunG, .cld, .rain, .snow {
+    opacity: 0;
+}
+
+.main-arch[data-w="맑음"] .sunG, .arch[data-w="맑음"] .sunG,
+.main-arch[data-w="흐림"] .cld, .arch[data-w="흐림"] .cld,
+.main-arch[data-w="비"] .rain, .arch[data-w="비"] .rain,
+.main-arch[data-w="눈"] .snow, .arch[data-w="눈"] .snow {
+    opacity: 1;
+}
+
+.main-arch[data-w="흐림"] .sunG, .arch[data-w="흐림"] .sunG {
+    opacity: 0;
+}
+
+.cap {
+    text-align: center;
+    color: var(--ink);
+    font-size: .95rem;
+    font-weight: 400;
+    margin-top: 18px;
+    min-height: 1.6em;
+}
+
+/* 온기 캡슐 슬라이더 카드 */
+.main-warm-card, .warm {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--card, #FFFFFF);
+    border: 1px solid var(--line, #E5E5E0);
+    border-radius: 24px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 12px rgba(26, 26, 26, .04);
+}
+
+.warm-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    color: var(--ink);
+}
+
+.warm-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.warm-label {
+    font-size: .95rem;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+}
+
+.warm-word {
+    font-family: var(--serif, 'Noto Serif KR', serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+}
+
+.warm-num {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--ink);
+    opacity: 0.65;
+    line-height: 1.4;
+    padding-top: 1px;
+}
+
+.cap-track {
+    position: relative;
+    margin-top: 14px;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--main-track, color-mix(in srgb, var(--bg) 70%, #FFFFFF));
+    border: 1px solid var(--line, #E5E5E0);
+    overflow: hidden;
+    transition: background 0.5s var(--ease);
+}
+
+.cap-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--p, 50%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--sel) 35%, #FFFFFF), color-mix(in srgb, var(--sel) 60%, #FFFFFF));
+    transition: width .5s var(--ease), background 0.5s var(--ease);
+}
+
+.cap-track input[type=range] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.cap-track .thumb {
+    position: absolute;
+    top: 50%;
+    left: var(--p, 50%);
+    width: 26px;
+    height: 26px;
+    margin-left: -13px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+    pointer-events: none;
+    transition: left .5s var(--ease);
+}
+
+.cap-track input[type=range]:focus-visible ~ .thumb {
+    outline: 2px solid var(--sel);
+    outline-offset: 3px;
+}
+
+/* 감정 카드 섹션 */
+.hint {
+    color: var(--ink);
+    font-size: .92rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.main-emotion-grid, .cats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    align-items: stretch;
+    background: transparent;
+}
+
+.main-emotion-card, .cat {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+    padding: 18px 18px !important;
+    border-radius: 24px !important;
+    background: var(--card, #FFFFFF) !important;
+    border: 1.5px solid var(--line, #E5E5E0) !important;
+    box-shadow: 0 2px 12px rgba(26, 26, 26, .04) !important;
+    cursor: pointer;
+    transition: transform .25s var(--ease), border-color .25s var(--ease), background-color .25s var(--ease) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    outline: none !important;
+    color: var(--ink);
+}
+
+.main-emotion-card:hover, .cat:hover {
+    transform: translateY(-2px);
+}
+
+.main-emotion-card[aria-pressed="true"], .cat[aria-pressed="true"] {
+    border: 1.5px solid var(--sel) !important;
+    outline: none !important;
+    background: var(--card, #FFFFFF) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+.main-card-header, .cat .n {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ink) !important;
+    line-height: 1.4;
+    min-width: 0;
+}
+
+.main-card-dot, .cat .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.main-card-desc, .cat small {
+    display: block;
+    color: var(--ink) !important;
+    font-size: 14px !important;
+    font-weight: 400;
+    margin-top: 6px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    min-width: 0;
+}
+
+/* 상황 칩 섹션 */
+.main-situation-grid, .chips {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    align-items: stretch;
+    background: transparent;
+}
+
+.main-situation-grid[hidden], .chips[hidden] {
+    display: none !important;
+}
+
+.main-situation-chip, .chip {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 14px 16px !important;
+    border-radius: 20px !important;
+    background: var(--card, #FFFFFF) !important;
+    border: 1.5px solid var(--line, #E5E5E0) !important;
+    box-shadow: 0 2px 12px rgba(26, 26, 26, .04) !important;
+    cursor: pointer;
+    text-align: center;
+    font-size: .95rem;
+    font-weight: 400;
+    color: var(--ink) !important;
+    transition: transform .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+    outline: none !important;
+}
+
+.main-situation-chip:hover, .chip:hover {
+    transform: translateY(-1px);
+}
+
+.main-situation-chip[aria-pressed="true"], .chip[aria-pressed="true"] {
+    border: 1.5px solid var(--sel) !important;
+    outline: none !important;
+    background: color-mix(in srgb, var(--sel) 15%, #FFFFFF) !important;
+    color: var(--ink) !important;
+    font-weight: 600;
+}
+
+/* 이야기 입력창 (줄노트) */
+.main-story-textarea, .paper {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 170px;
+    padding: 14px 1.4rem;
+    border: 1px solid var(--line, #E5E5E0);
+    border-radius: 24px;
+    background-color: var(--card, #FFFFFF);
+    background-image: linear-gradient(transparent 33px, var(--line, #E5E5E0) 33px, var(--line, #E5E5E0) 34px);
+    background-size: 100% 34px;
+    background-origin: content-box;
+    background-attachment: local;
+    line-height: 34px;
+    outline: 0;
+    resize: none;
+    color: var(--ink) !important;
+    font-family: var(--serif, 'Noto Serif KR', serif);
+    font-size: 1rem;
+    font-weight: 400;
+    transition: border-color .2s var(--ease);
+}
+
+.main-story-textarea::placeholder, .paper::placeholder {
+    color: rgba(17, 17, 17, 0.45) !important;
+    opacity: 1;
+}
+
+.main-story-textarea:focus-visible, .paper:focus-visible {
+    border-color: var(--sel);
+}
+
+/* 다음 버튼: 텍스트는 var(--ink) 통일, 배경은 var(--card), 테두리는 var(--sel) */
+.main-next-btn, .next {
+    display: block;
+    margin: 20px 0 0 auto;
+    padding: 14px 28px;
+    border: 1.5px solid var(--sel);
+    border-radius: 999px;
+    background: var(--card, #FFFFFF);
+    color: var(--ink) !important;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: transform .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.main-next-btn:hover, .next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.status {
+    text-align: right;
+    color: var(--ink);
+    font-size: .9rem;
+    font-weight: 400;
+    min-height: 1.4em;
+    margin-top: 8px;
+}
+
+/* ── 미니 위저드 (Progressive Disclosure: 1-A 태그 선택 -> 1-B 이야기 작성) ── */
+#wizard-step-1a, #wizard-step-1b {
+    width: 100%;
+    animation: fadeInStep .35s var(--ease) both;
+}
+
+@keyframes fadeInStep {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mini-wizard-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--card, #FFFFFF);
+    border: 1.5px solid var(--sel);
+    font-size: 0.8rem;
+    color: var(--ink);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.mini-wizard-badge .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ink);
+    opacity: 0.35;
+}
+
+.mini-summary-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px 18px;
+    background: var(--card, #FFFFFF);
+    border: 1.5px solid var(--sel);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--ink);
+    font-size: 0.92rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mini-summary-card .summary-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sel);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.mini-summary-card .summary-divider {
+    opacity: 0.35;
+    margin: 0 2px;
+}
+
+.mini-summary-card .summary-sit {
+    opacity: 0.85;
+    font-size: 0.88rem;
+}
+
+.mini-summary-card .summary-warm {
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+/* ==========================================================================
+   Andante Comprehensive Mobile Responsive Design (< 768px & < 480px)
+   ========================================================================== */
+
+/* 1. Global Touch & Viewport Polish (< 768px) */
+@media (max-width: 768px) {
+    /* Header layout: 2단 그리드로 분리 (상단: 로고 중앙 배치, 하단: 좌우 버튼 깔끔 정렬) */
+    .app-header {
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas: 
+            "logo logo"
+            "navleft navright" !important;
+        row-gap: 10px !important;
+        column-gap: 10px !important;
+        align-items: center !important;
+        padding: 14px 16px 8px !important;
+        margin-top: 4px !important;
+        margin-bottom: 16px !important;
+        min-height: auto !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+    }
+
+    /* 브랜드 로고: 1열 전체 가로폭에서 정중앙 정렬 (절대 위치 강제 해제) */
+    .app-header > div:nth-child(2),
+    .app-header > div[onclick*="location.href='/'"] {
+        grid-area: logo !important;
+        position: static !important;
+        transform: none !important;
+        top: auto !important;
+        left: auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        margin: 0 auto !important;
+        text-align: center !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .app-header .font-editorial-title {
+        font-size: 1.45rem !important;
+        letter-spacing: 0.24em !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+    }
+
+    #theme-concept-text,
+    .app-header p.font-editorial-sub {
+        display: none !important;
+    }
+
+    /* 좌측 메뉴 (2열 좌측) */
+    .app-header > div:nth-child(1) {
+        grid-area: navleft !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+        min-width: 0 !important;
+    }
+
+    /* 우측 메뉴 (2열 우측) */
+    .app-header > div:nth-child(3) {
+        grid-area: navright !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 8px !important;
+        min-width: 0 !important;
+    }
+
+    /* 모바일 헤더 버튼 디자인 (부드러운 알약 캡슐 스타일) */
+    .app-header button,
+    .app-header .btn-editorial {
+        font-size: 11px !important;
+        letter-spacing: 0.02em !important;
+        padding: 5px 10px !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, 0.75) !important;
+        border: 1px solid rgba(0, 0, 0, 0.08) !important;
+        white-space: nowrap !important;
+        cursor: pointer !important;
+    }
+
+    /* Main container */
+    #main-content {
+        padding: 12px 16px 80px !important;
+        gap: 28px !important;
+    }
+
+    /* Step 1 Typography & Hero */
+    h1#h1 {
+        font-size: clamp(1.5rem, 6vw, 1.95rem) !important;
+        line-height: 1.32 !important;
+    }
+    .lead {
+        font-size: 0.92rem !important;
+        margin-top: 6px !important;
+    }
+    .main-arch, .arch {
+        width: min(84%, 270px) !important;
+    }
+    .main-glow, .glow {
+        width: min(84%, 300px) !important;
+    }
+
+    /* Diary Bookshelf (Mobile View: Vertical Flip Cards) */
+    #diary-section > div {
+        padding: 0 16px !important;
+    }
+    .diary-book-wrapper {
+        padding: 0 4px !important;
+    }
+    .book-spread {
+        flex-direction: column !important;
+        margin: 0 34px !important;
+        border-radius: 20px !important;
+        min-height: auto !important;
+    }
+    .book-crease {
+        display: none !important;
+    }
+    .book-page {
+        width: 100% !important;
+        padding: 22px 18px !important;
+        box-sizing: border-box !important;
+    }
+    .left-page {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.07) !important;
+    }
+    .book-nav {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 13px !important;
+    }
+    .prev-btn { left: 0 !important; }
+    .next-btn { right: 0 !important; }
+    #diary-music-player-container {
+        padding: 0 16px !important;
+    }
+
+    /* Healing Mode Fullscreen UI */
+    #healing-subtitle-text {
+        font-size: 1.35rem !important;
+        line-height: 1.6 !important;
+    }
+    #healing-subtitle-container {
+        bottom: 50px !important;
+        padding: 0 20px !important;
+    }
+    #close-healing-btn {
+        top: 14px !important;
+        right: 14px !important;
+        font-size: 11px !important;
+        padding: 8px 14px !important;
+    }
+}
+
+/* 2. Compact Smartphones (< 480px, iPhone SE, Galaxy S/Z, etc.) */
+@media (max-width: 480px) {
+    /* Header links on compact phones */
+    .app-header {
+        padding: 10px 12px 6px !important;
+        row-gap: 8px !important;
+    }
+    .app-header button,
+    .app-header .btn-editorial {
+        font-size: 10.5px !important;
+        padding: 4px 8px !important;
+    }
+    .app-header .font-editorial-title {
+        font-size: 1.35rem !important;
+        letter-spacing: 0.22em !important;
+    }
+    #user-info {
+        display: none !important;
+    }
+
+    /* Warmth capsule slider */
+    .main-warm-card, .warm {
+        padding: 14px 16px !important;
+        border-radius: 18px !important;
+    }
+    .warm-word {
+        font-size: 1.1rem !important;
+    }
+
+    /* Emotion Cards Grid (Tighter padding & fonts so cards fit 2x3 cleanly) */
+    .main-emotion-grid, .cats {
+        gap: 8px !important;
+    }
+    .main-emotion-card, .cat {
+        padding: 12px 10px !important;
+        border-radius: 16px !important;
+    }
+    .main-card-header, .cat .n {
+        font-size: 0.88rem !important;
+        gap: 6px !important;
+    }
+    .main-card-desc, .cat small {
+        font-size: 12px !important;
+        margin-top: 4px !important;
+        line-height: 1.35 !important;
+    }
+
+    /* Situation Chips Grid */
+    .main-situation-grid, .chips {
+        gap: 7px !important;
+    }
+    .main-situation-chip, .chip {
+        padding: 10px 8px !important;
+        font-size: 0.82rem !important;
+        border-radius: 14px !important;
+        min-height: 42px !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Story Textarea (iOS 16px zoom prevention & mobile touch area) */
+    .main-story-textarea, .paper {
+        font-size: 16px !important;
+        min-height: 150px !important;
+        padding: 12px 14px !important;
+        line-height: 30px !important;
+        background-size: 100% 30px !important;
+        border-radius: 18px !important;
+    }
+
+    /* Next & CTA Buttons */
+    .main-next-btn, .next {
+        width: 100% !important;
+        text-align: center !important;
+        margin: 16px 0 0 !important;
+        padding: 13px 20px !important;
+        font-size: 0.95rem !important;
+    }
+
+    /* Step 2 Poem Card */
+    .poem-card-wrapper {
+        padding: 24px 16px !important;
+        border-radius: 18px !important;
+    }
+    .poem-title {
+        font-size: 19px !important;
+    }
+    .poem-content {
+        font-size: 15px !important;
+        line-height: 1.75 !important;
+    }
+    #btn-next-to-3 {
+        width: 100% !important;
+        padding: 13px 20px !important;
+        font-size: 0.88rem !important;
+        text-align: center !important;
+    }
+
+    /* Step 3 Music Sticker Player */
+    #music-sticker-slot .rounded-3xl {
+        padding: 14px 16px !important;
+        border-radius: 20px !important;
+    }
+    #player-title {
+        font-size: 0.92rem !important;
+    }
+    #sticker-play-btn {
+        width: 42px !important;
+        height: 42px !important;
+    }
+
+    /* Login inputs (prevent iOS Safari zoom) */
+    .login-input {
+        font-size: 16px !important;
+    }
+}
+

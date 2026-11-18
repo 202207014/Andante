@@ -1,4 +1,27 @@
 window.NeoModal = {
+    alert(message) {
+        return new Promise(resolve => {
+            const overlay = this._createOverlay();
+            overlay.innerHTML = `
+                <div class="brutal-card bg-white p-6 max-w-sm w-full shadow-brutal text-center flex flex-col gap-5 transform scale-95 transition-transform duration-200" style="opacity:0">
+                    <h3 class="text-base font-bold text-stone-900 leading-snug break-keep">${message}</h3>
+                    <div class="flex justify-center">
+                        <button id="neo-alert-ok" class="px-6 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-medium text-xs transition-colors cursor-pointer">확인</button>
+                    </div>
+                </div>
+            `;
+            const card = overlay.firstElementChild;
+            card.offsetHeight;
+            card.style.opacity = '1';
+            card.style.transform = 'scale(1)';
+
+            overlay.querySelector('#neo-alert-ok').onclick = () => {
+                this._closeOverlay(overlay);
+                resolve(true);
+            };
+        });
+    },
+
     _createOverlay() {
         const overlay = document.createElement('div');
         overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4';
@@ -41,7 +64,7 @@ window.NeoModal = {
             overlay.innerHTML = `
                 <div class="brutal-card bg-white p-6 max-w-sm w-full shadow-brutal flex flex-col gap-4 transform scale-95 transition-transform duration-200" style="opacity:0">
                     <h3 class="text-xl font-black leading-tight">${message}</h3>
-                    <input type="text" id="neo-input" class="brutal-input w-full border-2 border-black p-3 font-bold" value="${defaultValue}">
+                    <input type="text" id="neo-input" class="brutal-input w-full border-2 border-black p-3 font-bold">
                     <div class="flex gap-4 justify-end mt-2">
                         <button id="neo-cancel" class="brutal-btn bg-white px-6 py-2 border-2 border-black font-bold">취소</button>
                         <button id="neo-ok" class="brutal-btn bg-sky px-6 py-2 border-2 border-black font-bold">확인</button>
@@ -54,6 +77,7 @@ window.NeoModal = {
             card.style.transform = 'scale(1)';
 
             const input = overlay.querySelector('#neo-input');
+            input.value = defaultValue || "";
             input.focus();
             input.select();
 

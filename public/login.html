@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - Andante</title>
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="lib/theme-mapping.js"></script>
     <style>
@@ -82,15 +82,23 @@
             <div class="input-group">
                 <label for="username" class="block text-xs font-semibold text-stone-800 mb-1">아이디</label>
                 <input type="text" id="username" placeholder="아이디를 입력하세요" class="login-input">
+                <p id="username-msg" class="text-xs mt-1.5 hidden font-medium"></p>
             </div>
             
             <div class="input-group">
                 <label for="password" class="block text-xs font-medium text-stone-600 mb-1">비밀번호</label>
                 <input type="password" id="password" placeholder="비밀번호를 입력하세요" class="login-input">
+                <p id="password-msg" class="text-xs text-rose-600 mt-1.5 hidden font-medium">비밀번호는 8자 이상이어야 해요.</p>
             </div>
             
             <!-- 회원가입 전용 폼 -->
             <div id="register-fields" class="hidden space-y-4 pt-3 border-t border-stone-200/80">
+                <div class="input-group">
+                    <label for="password-confirm" class="block text-xs font-medium text-stone-600 mb-1">비밀번호 확인</label>
+                    <input type="password" id="password-confirm" placeholder="비밀번호를 다시 입력하세요" class="login-input">
+                    <p id="password-confirm-msg" class="text-xs text-rose-600 mt-1.5 hidden font-medium">비밀번호가 일치하지 않아요.</p>
+                </div>
+
                 <div class="input-group">
                     <label for="name" class="block text-xs font-medium text-stone-600 mb-1">이름</label>
                     <input type="text" id="name" placeholder="이름을 입력하세요" class="login-input">
@@ -231,9 +239,47 @@
             }
         });
 
+        const usernameEl = document.getElementById('username');
+        const usernameMsg = document.getElementById('username-msg');
+        const pwMsg = document.getElementById('password-msg');
+        const pwConfirmMsg = document.getElementById('password-confirm-msg');
+        let isUsernameAvailable = null;
+
+        // 아이디 blur 시 중복 검사 (입력 중이 아닌 blur 시점에 1회만 호출)
+        usernameEl.addEventListener('blur', async () => {
+            if (!isReg) return;
+            const u = usernameEl.value.trim();
+            if (!u) {
+                usernameMsg.classList.add('hidden');
+                isUsernameAvailable = null;
+                return;
+            }
+            try {
+                const res = await fetch(`/api/auth/check-username?username=${encodeURIComponent(u)}`);
+                const data = await res.json();
+                if (data.available) {
+                    isUsernameAvailable = true;
+                    usernameMsg.textContent = "사용할 수 있는 아이디예요.";
+                    usernameMsg.className = "text-xs mt-1.5 text-emerald-600 font-medium block";
+                } else {
+                    isUsernameAvailable = false;
+                    usernameMsg.textContent = "이미 사용 중인 아이디예요.";
+                    usernameMsg.className = "text-xs mt-1.5 text-rose-600 font-medium block";
+                }
+            } catch (err) {
+                console.error("중복 검사 오류:", err);
+            }
+        });
+
         toggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
             isReg = !isReg;
+            usernameMsg.classList.add('hidden');
+            pwMsg.classList.add('hidden');
+            pwConfirmMsg.classList.add('hidden');
+            const pwConfirmEl = document.getElementById('password-confirm');
+            if (pwConfirmEl) pwConfirmEl.value = '';
+
             if (isReg) {
                 document.getElementById('auth-title').textContent = "회원가입";
                 document.getElementById('auth-desc').textContent = "Andante 회원 가입을 위한 기본 정보를 입력해 주세요.";
@@ -276,6 +322,13 @@
                 sessionStorage.setItem('authAge', data.age);
                 if (data.birthDate) sessionStorage.setItem('authBirthDate', data.birthDate);
                 if (data.mbti) sessionStorage.setItem('authMbti', data.mbti);
+                
+                // 기존 계정이면서 비밀번호를 아직 8자 이상으로 변경하지 않은 경우에만 권장 안내 표시
+                if (data.pwUpdated !== true && localStorage.getItem('pw_updated_' + data.username) !== 'true') {
+                    sessionStorage.setItem('showPwSecurityNotice', 'true');
+                } else {
+                    sessionStorage.removeItem('showPwSecurityNotice');
+                }
                 window.location.href = '/';
             } catch (e) { showToast(e.message); }
         });
@@ -283,6 +336,7 @@
         regBtn.addEventListener('click', async () => {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
+            const passwordConfirm = document.getElementById('password-confirm').value.trim();
             const name = document.getElementById('name').value.trim();
             const age = document.getElementById('age').value.trim();
             const birthDate = document.getElementById('birthDate').value;
@@ -290,7 +344,32 @@
             const genderEl = document.querySelector('input[name="gender"]:checked');
             const gender = genderEl ? genderEl.value : '남성';
 
-            if (!username || !password || !name || !age || !birthDate || !mbti) return showToast('모든 항목을 입력해주세요.');
+            pwMsg.classList.add('hidden');
+            pwConfirmMsg.classList.add('hidden');
+
+            if (!username || !password || !passwordConfirm || !name || !age || !birthDate || !mbti) {
+                return showToast('모든 항목을 입력해주세요.');
+            }
+
+            // 비밀번호 8자 이상 검증
+            if (password.length < 8) {
+                pwMsg.classList.remove('hidden');
+                return showToast('비밀번호는 8자 이상이어야 해요.');
+            }
+
+            // 비밀번호 확인 일치 검증
+            if (password !== passwordConfirm) {
+                pwConfirmMsg.classList.remove('hidden');
+                return showToast('비밀번호가 일치하지 않아요.');
+            }
+
+            // 아이디 중복 여부 확인
+            if (isUsernameAvailable === false) {
+                usernameMsg.textContent = "이미 사용 중인 아이디예요.";
+                usernameMsg.className = "text-xs mt-1.5 text-rose-600 font-medium block";
+                return showToast('이미 사용 중인 아이디예요.');
+            }
+
             try {
                 const res = await fetch('/api/auth/register', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '69420' },

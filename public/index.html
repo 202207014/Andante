@@ -9,170 +9,181 @@
             window.location.replace('/login.html');
         }
     </script>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=38">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="modal.js"></script>
+    <script src="modal.js?v=2"></script>
     <script src="lib/theme-mapping.js?v=7"></script>
-    <script src="components/healing.js?v=10"></script>
+    <script src="components/healing.js?v=15"></script>
 </head>
-<body id="main-bg-wrapper" class="theme-transition min-h-screen text-stone-800">
+<body class="min-h-screen">
     
-    <!-- 듀얼 크로스페이드 배경 컨테이너 (고정 백그라운드) -->
-    <div id="ambient-crossfade-bg" class="fixed inset-0 -z-50 overflow-hidden pointer-events-none select-none">
-      <!-- 하부 레이어 (Back Layer) -->
-      <div id="bg-layer-back" class="absolute inset-0 transition-opacity duration-1000 ease-in-out"></div>
-      <!-- 상부 레이어 (Front Layer: 투명도 조절로 크로스페이드 실행) -->
-      <div id="bg-layer-front" class="absolute inset-0 transition-opacity duration-1000 ease-in-out opacity-0"></div>
-    </div>
-    
-    <!-- Ambient Dreamy Blobs Background -->
-    <div id="blob-bg" class="blob-container">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+
 
     <!-- 1. Global Navigation Header (Editorial High-Fashion Layout, EVE HEALING Style) -->
-    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-8 py-5 my-6 relative-z">
+    <header class="app-header max-w-5xl mx-auto relative flex items-center justify-between px-8 sm:px-10 py-7 mt-7 mb-12 relative-z min-h-[92px]">
         <!-- Left Nav Links -->
         <div class="flex items-center gap-4 sm:gap-6 z-10">
-            <button id="diary-btn" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden whitespace-nowrap">
-                📓 일기장
+            <button id="diary-btn" class="text-xs uppercase tracking-widest text-[#111111] hover:opacity-70 transition-colors font-semibold hidden whitespace-nowrap cursor-pointer">
+                일기장
             </button>
-            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold whitespace-nowrap">
+            <button onclick="location.href='/board.html'" class="text-xs uppercase tracking-widest text-[#111111] hover:opacity-70 transition-colors font-semibold whitespace-nowrap cursor-pointer">
                 공유 갤러리
             </button>
         </div>
 
         <!-- Center Brand Logo (Absolute Center for Perfect Geometric Alignment) -->
-        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto" onclick="location.href='/'">
-            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-stone-900 tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02]">
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center cursor-pointer group pointer-events-auto flex flex-col items-center justify-center min-w-[200px]" onclick="location.href='/'">
+            <h1 class="font-editorial-title text-2xl md:text-3xl font-light text-[#111111] tracking-[0.28em] transition-transform duration-300 group-hover:scale-[1.02] leading-none">
                 ANDANTE
             </h1>
-            <p id="theme-concept-text" class="font-editorial-sub text-[11px] text-stone-600 tracking-widest mt-0.5 font-medium whitespace-nowrap">
+            <p id="theme-concept-text" class="font-editorial-sub text-[11px] text-[#111111] tracking-widest mt-2 font-medium whitespace-nowrap h-[18px] leading-[18px] overflow-hidden text-ellipsis max-w-[280px] sm:max-w-[360px] text-center">
                 a piece of comfort
             </p>
         </div>
 
         <!-- Right Nav Links & User Status -->
-        <div class="flex items-center gap-3 sm:gap-4 z-10">
-            <span id="user-info" class="text-xs text-stone-700 font-medium tracking-wider"></span>
-            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-stone-700 hover:text-stone-900 transition-colors font-semibold hidden">
+        <div class="flex items-center gap-3 sm:gap-5 z-10">
+            <span id="user-info" class="text-xs text-[#111111] font-medium tracking-wider whitespace-nowrap"></span>
+            <button id="mypage-btn" onclick="location.href='/mypage.html'" class="text-xs uppercase tracking-widest text-[#111111] hover:opacity-70 transition-colors font-semibold hidden whitespace-nowrap cursor-pointer">
                 마이페이지
             </button>
-            <button id="login-nav-btn" class="btn-editorial">
+            <button id="login-nav-btn" class="btn-editorial whitespace-nowrap cursor-pointer">
                 로그인
             </button>
-            <button id="logout-btn" class="text-xs uppercase tracking-widest text-stone-600 hover:text-rose-600 transition-colors font-semibold hidden">
+            <button id="logout-btn" class="text-xs uppercase tracking-widest text-[#111111] hover:text-rose-600 transition-colors font-semibold hidden whitespace-nowrap cursor-pointer">
                 로그아웃
             </button>
         </div>
     </header>
 
-    <main id="main-content" class="container max-w-4xl mx-auto space-y-6 relative-z px-4">
+    
+
+    <main id="main-content" class="relative-z">
         
-        <!-- Step 1: 마음 비우기 -->
-        <section id="step-1-input" class="mt-8">
-            <!-- Step Badge -->
-            <div class="flex items-center justify-center mb-8">
-                <div class="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
-                    <span class="font-editorial-title text-xs tracking-[0.2em] text-stone-900 font-bold">01 / 03</span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></span>
-                    <span class="font-editorial-serif text-xs tracking-wider text-stone-800 font-medium">마음 비우기</span>
-                </div>
-            </div>
-            
-            <div id="home-section" class="editorial-card max-w-2xl mx-auto space-y-7 rounded-3xl" style="background-color: #FDFBF7;">
-                <!-- Card Header (Analog Diary Header) -->
-                <div class="border-b border-stone-200/80 pb-5 flex justify-between items-center">
-                    <div>
-                        <span class="text-[11px] tracking-[0.22em] uppercase font-semibold text-stone-500 block mb-1">
-                            ✦ Secret Diary · 오늘의 감정 기록
-                        </span>
-                        <h2 class="text-2xl font-normal text-stone-900 font-editorial-serif tracking-tight">
-                            마음 조심스레 털어놓기
-                        </h2>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-stone-200 text-xs text-stone-700 font-medium shadow-sm">
-                        <span id="weather-badge">🍵</span>
-                        <span id="current-location-text">포근한 온기</span>
-                    </div>
-                </div>
-
-                <!-- Mood Selection & Warmth Gauge -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-end">
-                        <label class="text-xs font-medium tracking-wide text-stone-800 flex items-center gap-2 font-editorial-serif">
-                            <span>🌿</span> 오늘 내 마음에 머무는 온기
-                        </label>
-                        <div class="flex items-baseline gap-1">
-                            <span id="energy-percentage-text" class="font-editorial-title text-2xl font-light text-stone-900">
-                                100
-                            </span>
-                            <span class="text-xs font-serif text-stone-500">°</span>
+        <!-- Step 1: 안단테 메인 프로토타입 인터랙션 (점진적 공개 Wizard: 1A 감정 선택 -> 1B 이야기 작성) -->
+        <section id="step-1-input" class="w-full flex flex-col gap-10">
+            <!-- Step 1-A: 마음 고르기 (온기, 감정 카드, 상황 칩) -->
+            <div id="wizard-step-1a" class="w-full flex flex-col gap-10">
+                <section class="block" id="b-title">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="kicker m-0">Andante · 느리게 흐르는 마음</p>
+                        <div class="mini-wizard-badge">
+                            <span class="font-bold">1 / 2</span>
+                            <span class="dot"></span>
+                            <span>마음 고르기</span>
                         </div>
                     </div>
+                    <h1 id="h1">오늘의 마음을,<br>한 장의 그림으로.</h1>
+                    <p class="lead" id="lead">날씨와 마음의 결을 고르면, 그 마음이 담긴 그림이 여기에 펼쳐져요.</p>
+                </section>
+
+                <section class="block" id="b-art">
+                    <div class="stage">
+                        <div class="main-glow glow" id="glow"></div>
+                        <div class="main-arch arch" id="arch" data-w="맑음">
+                            <svg viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet" role="img" aria-label="오늘의 마음 그림">
+                                <defs>
+                                    <clipPath id="archClip"><path d="M20 500 V200 A180 180 0 0 1 380 200 V500 Z"/></clipPath>
+                                </defs>
+                                <g clip-path="url(#archClip)">
+                                    <rect width="400" height="500" style="fill:var(--k0)"/>
+                                    <g class="sunG"><circle cx="280" cy="150" r="52" style="fill:var(--k2)"/></g>
+                                    <g class="cld">
+                                        <ellipse cx="150" cy="120" rx="80" ry="22" fill="#fff" opacity=".6"/>
+                                        <ellipse cx="240" cy="160" rx="60" ry="18" fill="#fff" opacity=".5"/>
+                                    </g>
+                                    <path d="M20 300 L120 210 L200 280 L280 200 L380 300 V500 H20Z" style="fill:var(--k3)"/>
+                                    <path d="M20 340 L100 290 L190 340 L290 280 L380 335 V500 H20Z" style="fill:var(--k4)"/>
+                                    <rect y="360" width="400" height="140" style="fill:var(--k5)"/>
+                                    <ellipse cx="280" cy="420" rx="50" ry="8" style="fill:var(--k2)" opacity=".7"/>
+                                    <path d="M0 440 Q100 420 200 440 T400 440 V500 H0Z" style="fill:var(--k6)" opacity=".5"/>
+                                    <g class="rain" stroke="#fff" stroke-opacity=".5" id="rainG"></g>
+                                    <g class="snow" id="snowG"></g>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="cap" id="cap"></p>
+                </section>
+
+                <section class="block" id="b-warm">
+                    <div class="main-warm-card warm">
+                        <div class="warm-top">
+                            <div class="warm-header-left">
+                                <span class="warm-label">🌿 지금 내 체력</span>
+                                <b id="warmWord" class="warm-word">충분해요</b>
+                            </div>
+                            <span id="warmNum" class="warm-num">50%</span>
+                        </div>
+                        <div class="cap-track" id="track" style="--p:50%">
+                            <div class="cap-fill"></div>
+                            <input type="range" id="warm" min="0" max="100" value="50" aria-label="지금 내 체력">
+                            <div class="thumb"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="block" id="b-cats">
+                    <p class="hint">✦ 마음의 큰 결을 먼저 골라주세요.</p>
+                    <div class="main-emotion-grid cats" id="cats" role="group" aria-label="오늘의 감정"></div>
+                    <p class="hint" style="margin-top:28px" id="subHint" hidden>✦ 구체적인 상황을 골라주세요.</p>
+                    <div class="main-situation-grid chips" id="chips" role="group" aria-label="구체적인 상황" hidden></div>
                     
-                    <!-- Warmth Streamline Gauge Slider -->
-                    <div class="energy-slider-wrapper relative w-full pt-1 pb-2">
-                        <div class="relative w-full h-2.5 rounded-full bg-stone-200/80 border border-stone-300/80 overflow-hidden shadow-inner">
-                            <div id="energy-fill" class="h-full bg-gradient-to-r from-emerald-200 via-teal-300 to-emerald-400 transition-all duration-150 rounded-full shadow-[0_0_12px_rgba(52,211,153,0.35)]" style="width: 100%;"></div>
-                        </div>
-                        <input 
-                            type="range" 
-                            id="energy-battery-slider"
-                            min="0" max="100" 
-                            value="100"
-                            class="energy-range-input"
-                        />
-                    </div>
+                    <button class="main-next-btn" id="btn-to-1b" type="button" style="margin-top: 32px;">다음: 이야기 적기 →</button>
+                </section>
+            </div>
 
-                    <!-- Accordion Container (Situations) -->
-                    <div class="pt-3">
-                        <div class="text-[11px] text-stone-500 font-editorial-serif mb-2 tracking-wide flex items-center gap-1.5">
-                            <span>✦</span> 지금 마음의 결에 가장 가까운 감정을 골라보세요
-                        </div>
-                        <div id="mood-accordion-container" class="space-y-2.5">
-                            <!-- Dynamic Accordions injected by app.js -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- User Prompt Textarea (Lined Letter Paper) -->
-                <div class="space-y-2 pt-2">
-                    <div class="flex justify-between items-center">
-                        <label class="block text-xs font-medium tracking-wide text-stone-800 font-editorial-serif">
-                            ✍️ 나만의 비밀 편지지 <span class="text-stone-500 font-normal">(가장 솔직한 마음의 문장을 남겨주세요)</span>
-                        </label>
-                    </div>
-                    <textarea 
-                        id="mood-input" 
-                        rows="6" 
-                        placeholder="오늘 하루 머릿속을 맴돌던 생각이나 지친 마음, 혹은 가슴 벅찬 순간을 조용히 적어보세요...&#10;당신의 이야기는 누구에게도 판단받지 않는 따뜻한 시가 됩니다." 
-                        class="diary-letter-paper"
-                    ></textarea>
-                </div>
-
-                <!-- Analyze Button (Warm Pill Action) -->
-                <div class="pt-2 flex justify-center">
-                    <button id="analyze-btn" class="active-press hover-lift w-full py-4 rounded-full bg-stone-900 text-white font-medium text-xs tracking-[0.22em] uppercase transition-all shadow-md hover:bg-stone-800 disabled:opacity-50 flex items-center justify-center gap-2">
-                        <span id="analyze-btn-text">🌿 안단테에게 마음 보내기 ➔</span>
+            <!-- Step 1-B: 이야기 적기 (글쓰기 & AI 분석 요청) -->
+            <div id="wizard-step-1b" class="hidden w-full flex flex-col gap-6">
+                <!-- 상단 이동 & 인디케이터 -->
+                <div class="flex items-center justify-between w-full">
+                    <button id="btn-back-to-1a" class="btn-editorial" type="button">
+                        ← 감정 다시 고르기
                     </button>
+                    <div class="mini-wizard-badge">
+                        <span class="font-bold">2 / 2</span>
+                        <span class="dot"></span>
+                        <span>이야기 적기</span>
+                    </div>
                 </div>
+
+                <!-- 선택된 감정 요약 카드 -->
+                <div id="summary-card-1b" class="mini-summary-card">
+                    <div class="flex items-center gap-2">
+                        <span class="summary-dot" id="summary-dot-1b"></span>
+                        <span class="summary-cat font-medium" id="summary-cat-1b">선택한 감정</span>
+                        <span class="summary-divider">·</span>
+                        <span class="summary-sit" id="summary-sit-1b">상황 미선택</span>
+                    </div>
+                    <span class="summary-warm" id="summary-warm-1b">🌿 충분해요 · 50%</span>
+                </div>
+
+                <section class="block" id="b-story-intro" style="margin-bottom: -10px;">
+                    <h2 class="text-xl sm:text-2xl font-serif font-bold text-[#111111] mb-1.5">오늘 마음에 머문 이야기</h2>
+                    <p class="lead text-sm" style="margin: 0;">오늘 있었던 일이나 문득 스친 생각들을 편안하게 적어 보세요.</p>
+                </section>
+
+                <section class="block" id="b-story">
+                    <p class="hint">✦ 솔직한 이야기를 들려주시면 당신만을 위한 시와 음악이 엮어집니다.</p>
+                    <textarea class="main-story-textarea paper" id="story" placeholder="오늘 있었던 일을 편하게 적어 보세요..." aria-label="오늘의 이야기" spellcheck="false" style="min-height: 200px;"></textarea>
+                    <button class="main-next-btn next" id="next" type="button">그림과 시 받기 →</button>
+                    <p class="status" id="status" role="status"></p>
+                </section>
             </div>
         </section>
 
-        <!-- Step 2: 마음 채우기 (시 감상) -->
-        <section id="step-2-poem" class="hidden w-full max-w-2xl mx-auto flex-col justify-center min-h-[50vh] mt-8">
-            <div class="mb-8 flex justify-between items-center w-full">
+        <!-- Step 2: 2단계 · 시 읽기 -->
+        <section id="step-2-poem" class="hidden w-full max-w-[920px] mx-auto flex-col justify-center min-h-[50vh] mt-4 sm:mt-6">
+            <div class="mb-5 sm:mb-6 flex justify-between items-center w-full">
                <button id="btn-back-to-1" class="btn-editorial active-press">
                    ← 이전 단계
                </button>
                
-               <div class="flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
-                   <span class="font-editorial-title text-xs tracking-[0.2em] text-stone-900 font-bold">02 / 03</span>
-                   <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
-                   <span class="font-editorial-serif text-xs tracking-wider text-stone-800 font-medium">마음 채우기</span>
+               <div class="flex items-center gap-2.5 px-5 py-2 rounded-full bg-white/90 backdrop-blur-md border border-stone-300 shadow-sm">
+                   <span class="text-xs font-semibold text-stone-900">2단계</span>
+                   <span class="w-1 h-1 rounded-full bg-stone-400"></span>
+                   <span class="text-xs text-stone-700 font-medium">시 읽기</span>
                </div>
                
                <div class="w-20 hidden sm:block"></div>
@@ -180,8 +191,8 @@
             
             <div id="poem-card-slot"></div>
 
-            <div class="mt-8 flex justify-center w-full" id="step-2-next-wrapper">
-               <button id="btn-next-to-3" class="active-press hover-lift px-10 py-4 rounded-full bg-stone-900 text-white text-xs tracking-[0.2em] uppercase transition-all shadow-md hover:bg-stone-800">
+            <div class="mt-5 sm:mt-6 flex justify-center w-full" id="step-2-next-wrapper">
+               <button id="btn-next-to-3" class="active-press hover-lift px-8 py-3.5 rounded-full bg-stone-900 text-white text-sm font-medium tracking-normal transition-all shadow-md hover:bg-stone-800">
                    나의 마음이 그려진 캔버스 보기 ➔
                </button>
             </div>
@@ -304,31 +315,27 @@
         </div>
     </div>
 
-    <script src="app.js?v=31"></script>
+    <script src="app.js?v=69"></script>
 
-    <!-- Asymptotic Loader Modal (Frosted Glass Editorial Refinement) -->
+    <!-- Asymptotic Loader Modal with Breathing Orb -->
     <div id="loader" class="hidden transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; z-index: 50; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px);">
-        <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-8 py-10 rounded-3xl transition-all duration-300 bg-white/90 backdrop-blur-2xl border border-stone-200/80 shadow-2xl" style="transform: scale(1);">
+        <div id="loader-card" class="relative flex flex-col items-center justify-center w-[90%] max-w-sm px-8 py-10 rounded-3xl transition-all duration-300 bg-white/95 backdrop-blur-2xl border border-stone-200/80 shadow-2xl" style="transform: scale(1);">
             
-            <!-- Animated Rotating Minimalist Ring & Percentage -->
-            <div class="relative flex items-center justify-center w-24 h-24 mb-6">
-                <svg class="absolute w-full h-full animate-[spin_4s_linear_infinite]" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e7e5e4" stroke-width="2.5" />
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="#292524" stroke-width="2.5" stroke-dasharray="80 160" stroke-linecap="round" />
-                </svg>
-                <div class="text-2xl font-light font-editorial-title text-stone-800">
-                    <span id="loader-percentage">0</span><span class="text-xs font-normal ml-0.5">%</span>
-                </div>
-            </div>
+            <!-- Breathing Orb & Breath Label -->
+            <div class="orb" id="loader-orb"></div>
+            <p id="loader-breath" class="font-editorial-serif text-lg font-medium text-stone-800 mb-3" aria-live="polite">들이쉬고…</p>
 
             <!-- Dynamic Progress Text -->
-            <div class="h-10 mb-6 text-sm font-normal font-editorial-serif text-center text-stone-700 break-keep flex items-center justify-center" id="loader-text">
+            <div class="h-10 mb-4 text-xs font-normal font-editorial-serif text-center text-stone-600 break-keep flex items-center justify-center" id="loader-text">
                 적어주신 이야기 속 감정과 에너지 분석 중...
             </div>
 
-            <!-- Sleek Minimal Progress Bar -->
-            <div class="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
+            <!-- Sleek Minimal Progress Bar & Percentage -->
+            <div class="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden mb-2">
                 <div id="loader-bar" class="h-full bg-stone-800 transition-all duration-300 ease-out rounded-full" style="width: 0%; opacity: 0;"></div>
+            </div>
+            <div class="text-[11px] font-mono text-stone-400">
+                <span id="loader-percentage">0</span>%
             </div>
         </div>
     </div>

@@ -7,39 +7,41 @@ const AndanteComponents = {
    */
   renderPoemCard: function ({ title = "마음의 안단테", stanza1 = "", stanza2 = "" }) {
     return `
-      <div class="theme-transition mb-6" style="margin: 0 auto; max-width: 640px; background-color: #fdfbf7; border-radius: 2rem; padding: 48px 40px; box-shadow: 0 20px 45px -10px rgba(28, 25, 23, 0.08), 0 4px 16px -2px rgba(28, 25, 23, 0.04); border: 1px solid #E2DED9; text-align: center; position: relative; overflow: hidden;">
-        <!-- 은은한 쿼트 장식 (Editorial Quote Accent) -->
-        <div style="position: absolute; top: -10px; left: 32px; font-size: 90px; color: #f5f5f4; opacity: 0.8; font-family: 'Playfair Display', serif; line-height: 1; pointer-events: none;">“</div>
-        
+      <div class="theme-transition mb-4 poem-card-wrapper" style="margin: 0 auto; max-width: 920px; width: 100%; background-color: #fdfbf7; border-radius: 2rem; padding: 44px 52px; box-shadow: 0 16px 36px -8px rgba(28, 25, 23, 0.07), 0 4px 12px -2px rgba(28, 25, 23, 0.03); border: 1px solid #E2DED9; position: relative; overflow: hidden; box-sizing: border-box;">
         <div style="position: relative; z-index: 1;">
-            <!-- 메타 뱃지 -->
-            <div style="margin-bottom: 28px;">
-              <span style="padding: 5px 16px; font-size: 11px; font-weight: 600; border-radius: 999px; background: rgba(0,0,0,0.04); border: 1px solid #E2DED9; color: #44403c; letter-spacing: 0.2em; text-transform: uppercase;">
-                AI Poetry · 마음의 여백
+            <!-- 메타 뱃지 & 시 제목 (상단 중앙) -->
+            <div style="text-align: center; margin-bottom: 26px;">
+              <span class="poem-badge" style="display: inline-block; padding: 5px 18px; font-size: 13px; font-weight: 500; border-radius: 999px; background: rgba(0,0,0,0.04); border: 1px solid #E2DED9; color: #44403c; letter-spacing: normal; margin-bottom: 12px;">
+                마음의 여백에서 온 시
               </span>
+              <h3 class="poem-title" style="font-size: 26px; font-weight: 600; color: #1c1917; margin: 0; letter-spacing: 0.02em; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all; line-height: 1.4;">
+                ${title}
+              </h3>
             </div>
             
-            <!-- 시 제목 (확실한 다크 톤) -->
-            <h3 class="poem-title" style="font-size: 28px; font-weight: 700; color: #1c1917; margin-bottom: 32px; letter-spacing: 0.03em; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all;">
-              ${title}
-            </h3>
-            
-            <!-- 1절 (확실한 다크 톤) -->
-            <p class="poem-content" style="white-space: pre-line; font-size: 21px; line-height: 2.3; color: #1c1917; font-weight: 500; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all; letter-spacing: 0.01em;">
-              ${stanza1}
-            </p>
-            
-            <!-- 섬세한 중앙 디바이더 선 (✦ Divider) -->
-            <div style="display: flex; align-items: center; justify-content: center; gap: 16px; margin: 36px auto;">
-                <span style="width: 44px; height: 1px; background-color: #d6d3d1;"></span>
-                <span style="font-size: 13px; color: #78716c;">✦</span>
-                <span style="width: 44px; height: 1px; background-color: #d6d3d1;"></span>
+            <!-- 2열 가로 펼침면 (1절 좌측, 2절 우측) -->
+            <div class="poem-grid-spread">
+                <!-- 1절 (좌측) -->
+                <div class="poem-col poem-col-1">
+                    <p class="poem-content" style="white-space: pre-line; font-size: 19px; line-height: 2.0; color: #1c1917; font-weight: 500; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all; margin: 0;">
+                      ${stanza1}
+                    </p>
+                </div>
+                
+                <!-- 중앙 구분선 (데스크톱: 세로선, 모바일: 가로선) -->
+                <div class="poem-divider-center">
+                    <span class="poem-divider-line"></span>
+                    <span class="poem-divider-symbol">✦</span>
+                    <span class="poem-divider-line"></span>
+                </div>
+                
+                <!-- 2절 (우측) -->
+                <div class="poem-col poem-col-2">
+                    <p class="poem-content" style="white-space: pre-line; font-size: 19px; line-height: 2.0; color: #1c1917; font-weight: 500; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all; margin: 0;">
+                      ${stanza2}
+                    </p>
+                </div>
             </div>
-            
-            <!-- 2절 (확실한 다크 톤) -->
-            <p class="poem-content" style="white-space: pre-line; font-size: 21px; line-height: 2.3; color: #1c1917; font-weight: 500; font-family: 'Ownglyph_LeeSeoyun', 'Noto Serif KR', serif, cursive; word-break: keep-all; letter-spacing: 0.01em;">
-              ${stanza2}
-            </p>
         </div>
       </div>
     `;
